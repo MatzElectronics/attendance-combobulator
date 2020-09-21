@@ -7,6 +7,7 @@ Author: Matthew Matz (@MatzElectronics)
 Copyright: 2020, all rights reserved
 
 -->
+
 <head>
     <style>
         * {
@@ -115,7 +116,7 @@ Copyright: 2020, all rights reserved
             color: #bbb;
             border-color: #ccc;
         }
-        
+
         /* class applies to select element itself, not a wrapper element */
         .select-css {
             display: block;
@@ -184,7 +185,7 @@ Copyright: 2020, all rights reserved
         footer b a {
             color: #111;
         }
-        
+
         td {
             vertical-align: top;
         }
@@ -216,7 +217,7 @@ Copyright: 2020, all rights reserved
                 For class periods that have the same course subject (that have the same parent course for Canvas), be sure that the course subject is spelled the same in each entry!
             </li>
             <li>
-                Zoom meeting IDs are 11-digit numbers.  Spaces are not necessary and they will be deleted automatically.
+                Zoom meeting IDs are 11-digit numbers. Spaces are not necessary and they will be deleted automatically.
             </li>
             <li>
                 The Canvas "People" link should link to your parent course in Canvas and it can be used in multiple boxes below.
@@ -353,16 +354,17 @@ Copyright: 2020, all rights reserved
         <table>
             <tr>
                 <td>
-                     <button id="show-absent" class="button-css" onclick="showAttendance($('#report-period').value)" disabled>Show absences</button>               
+                    <button id="show-absent" class="button-css" onclick="showAttendance($('#report-period').value)" disabled>Show absences</button>
                 </td>
                 <td>&nbsp;&nbsp;&nbsp;</td>
                 <td>
-                    <button id="show-all" class="button-css" disabled>Show all activity</button>                
+                    <button id="show-all" class="button-css" disabled>Show all activity</button>
                     <i style="color:#aaa">Not implemented yet</i>
                 </td>
             </tr>
         </table>
-        <br><hr><br>
+        <br>
+        <hr><br>
         <div id="attendanceResult"></div>
     </div>
 
@@ -370,23 +372,36 @@ Copyright: 2020, all rights reserved
         <b>Attendance <a href="https://www.definition-of.com/Combobulator#:~:text=Definition,highly%20unusual%20product%20or%20outcome." target="_blank">Combobulator</a></b> - <a href="https://github.com/MatzElectronics" target="_blank">Matthew Matz</a> &copy;2020. All rights reserved.
     </footer>
     <script>
-        const CANVAS_ACTIVITY_WINDOW = 24 * 4;
-        const ZOOM_ACTIVITY_WINDOW = 20 * 4;
-        
-        const fileSelector = document.getElementById('file-selector');
+        const CANVAS_ACTIVITY_WINDOW = 24;
+        const ZOOM_ACTIVITY_WINDOW = 20;
+
+        window.studentList = JSON.parse(localStorage.getItem("EDGEAC-studentList")) || [];
+        window.canvasData = [];
+        window.zoomData = [];
+
+        window.courseNames = [];
+        window.periodNames = [];
+
+        window.settings = [];
+
+        function $(e) {
+            return document.querySelector(e);
+        }
 
         function navTo(panelId) {
             let panels = document.querySelectorAll('.panel');
+            let tabs = document.querySelectorAll('nav li');
+
             for (let i = 0; i < panels.length; i++) {
                 panels[i].style.display = 'none';
             }
-            let tabs = document.querySelectorAll('nav li');
             for (let i = 0; i < tabs.length; i++) {
                 tabs[i].style.backgroundColor = '#333';
             }
+
             $('#' + panelId).style.display = 'block';
             $('#' + panelId + '-tab').style.backgroundColor = '#337';
-            
+
             if (panelId === 'zoom') {
                 let todayTime = new Date();
                 let month = todayTime.getMonth() + 1;
@@ -399,7 +414,9 @@ Copyright: 2020, all rights reserved
         }
 
         function getZoomStudents() {
+            const fileSelector = document.getElementById('file-selector');
             let failCount = 0;
+
             if (fileSelector.files) {
                 for (let i = 0; i < fileSelector.files.length; i++) {
                     if (fileSelector.files[i]) {
@@ -416,25 +433,14 @@ Copyright: 2020, all rights reserved
                     }
                 }
             }
+
             setTimeout(() => {
                 fileSelector.value = '';
+                $('#file-selection-list').innerHTML = '';
                 if (failCount > 0) {
                     alert('Warning: Unable to load ' + failCount + ' files.');
                 }
             }, 2000);
-        }
-
-        window.zoomData = [];
-        window.studentList = JSON.parse(localStorage.getItem("EDGEAC-studentList")) || [];
-        window.canvasData = [];
-
-        window.courseNames = [];
-        window.periodNames = [];
-
-        window.settings = [];
-
-        function $(e) {
-            return document.querySelector(e);
         }
 
         function getUniqueSections() {
@@ -514,7 +520,6 @@ Copyright: 2020, all rights reserved
         }
 
         function processZoomStudents(zoomRawData) {
-            zoomRawData = zoomRawData.replace(/\@salemkeizer.org,/g, ',').split('\n');
             let foundFileHeader = false;
             let meetingId = null;
             let meetingCourse = '';
@@ -522,8 +527,10 @@ Copyright: 2020, all rights reserved
             let successFlag = false;
             let timeFlag = false;
 
+            zoomRawData = zoomRawData.replace(/\@salemkeizer.org,/g, ',').split('\n');
+
             for (i = 0; i < zoomRawData.length; i++) {
-                let tempData = zoomRawData[i].trim().replace(/,\h*(?![^,]+")/g,'|').split('|');
+                let tempData = zoomRawData[i].trim().replace(/,\h*(?![^,]+")/g, '|').split('|');
                 if (i === 0 && tempData[0] === 'Meeting ID') {
                     foundFileHeader = true;
                 }
@@ -545,7 +552,7 @@ Copyright: 2020, all rights reserved
             }
 
             $('#zoom-count').innerText = zoomData.length + ' records';
-            
+
             return successFlag;
         }
 
@@ -565,13 +572,13 @@ Copyright: 2020, all rights reserved
                 return elem.period === period
             }).course;
         }
-        
+
         function linkFromCourse(course) {
             return settings.find((elem) => {
                 return elem.course === course
             }).canvasLink;
         }
-        
+
         function courseFromZoomId(zoomId) {
             return settings.find((elem) => {
                 return elem.zoomId === zoomId
@@ -638,6 +645,7 @@ Copyright: 2020, all rights reserved
             localStorage.setItem('EDGEAC-settings', JSON.stringify(settings));
 
             populateSettings();
+            getUniqueSections();
         }
 
         function populateSettings() {
@@ -651,7 +659,7 @@ Copyright: 2020, all rights reserved
                 }
             }
         }
-        
+
         function populateStudentList() {
             let tempStudentList = [];
             studentList.forEach((record) => {
@@ -662,7 +670,7 @@ Copyright: 2020, all rights reserved
             tempStudentList.sort();
             $('#show-synergy-list').innerHTML = '<br><b>' + tempStudentList.length + ' Students:</b><br><br>' + tempStudentList.join('<br>');
         }
-        
+
         function showAttendance(period) {
             // find the course name
             let courseName = '';
@@ -674,12 +682,18 @@ Copyright: 2020, all rights reserved
             }
 
             let attendedList = [];
+            let participationData = [];
+            let attended = [];
+            let foundZoomData = false;
+            let foundCanvasData = false;
+
             $('#attendanceResult').innerHTML = '<b>' + courseName + ': period ' + period + '</b><br><br>';
 
             // get data from canvas
             for (let i = 0; i < canvasData.length; i++) {
                 if (canvasData[i].course === courseName) {
                     attendedList.push(canvasData[i].id);
+                    foundCanvasData = true;
                 }
             }
 
@@ -687,22 +701,37 @@ Copyright: 2020, all rights reserved
             for (let i = 0; i < zoomData.length; i++) {
                 if (zoomData[i].course === courseName) {
                     attendedList.push(zoomData[i].id);
+                    foundZoomData = true;
                 }
             }
 
-            let attended = [];
             for (let i = 0; i < studentList.length; i++) {
-                if (studentList[i].period === period && attendedList.indexOf(studentList[i].id) === -1) {
+                let attendedListIndex = attendedList.indexOf(studentList[i].id);
+                if (studentList[i].period === period && attendedListIndex === -1) {
                     attended.push(`${studentList[i].last},  ${studentList[i].first}`);
                 }
             }
             attended.sort();
-            $('#attendanceResult').innerHTML += attended.join('<br>');
+
+            if (!foundZoomData) {
+                $('#attendanceResult').innerHTML += '<i>WARNING: No Zoom Data was found for this class period.</i><br>';
+            }
+            if (!foundCanvasData) {
+                $('#attendanceResult').innerHTML += '<i>WARNING: No Canvas Data was found for this class period.</i><br>';
+            }
+
+            $('#attendanceResult').innerHTML += (!foundCanvasData || !foundZoomData ? '<br>' : '') + attended.join('<br>');
         }
+
 
         populateSettings();
         getUniqueSections();
-        navTo('canvas');
+
+        if (settings.length > 0) {
+            navTo('canvas');
+        } else {
+            navTo('setup');
+        }
 
         $('#file-selector').addEventListener("change", function() {
             $('#file-selection-list').innerHTML = '';
@@ -717,11 +746,13 @@ Copyright: 2020, all rights reserved
             $('#add-synergy-data').disabled = ($('#synergy-course').value === 'none' ? true : false);
             populateStudentList();
         });
+
         $('#canvas-course').addEventListener('change', () => {
             $('#canvas-course-link').style.display = ($('#canvas-course').value === 'none' ? 'none' : 'block');
             $('#canvas-course-link').setAttribute('href', $('#canvas-course').value === 'none' ? '#' : linkFromCourse($('#canvas-course').value));
             $('#get-canvas-data').disabled = ($('#canvas-course').value === 'none' ? true : false);
         });
+
         $('#report-period').addEventListener('change', () => {
             //$('#show-all').disabled = ($('#report-period').value === 'none' ? true : false);
             $('#show-absent').disabled = ($('#report-period').value === 'none' ? true : false);
