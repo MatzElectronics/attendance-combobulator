@@ -1,0 +1,734 @@
+<html>
+<!--
+
+This software is for use by permission only.
+For inquiries or permission, please contact me at matt dot m dot matz at gmail dot com.
+Author: Matthew Matz (@MatzElectronics)
+Copyright: 2020, all rights reserved
+
+-->
+<head>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            margin: 0;
+        }
+
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #777;
+        }
+
+        nav li {
+            float: left;
+            border-right: 1px solid #bbb;
+            background-color: #333;
+        }
+
+        nav li a {
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+
+        /* Change the link color to #111 (black) on hover */
+        nav li a:hover {
+            background-color: #559;
+        }
+
+        .panel {
+            padding: 20px;
+        }
+
+        table {
+            margin-top: 20px;
+        }
+
+        th {
+            font-weight: 700;
+        }
+
+        textarea {
+            padding: 0.25em;
+            border-radius: 0.5em;
+            background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+            border-color: #aaa;
+            box-shadow: 0 1px 0 1px rgba(0, 0, 0, .04);
+        }
+
+        input[type=text] {
+            display: block;
+            font-size: 16px;
+            font-weight: 700;
+            color: #444;
+            line-height: 1.3;
+            padding: .6em 1.4em .5em .8em;
+            border-radius: 0.5em;
+            background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+            border: 1px solid #aaa;
+            box-shadow: 0 1px 0 1px rgba(0, 0, 0, .04);
+        }
+
+        input[type=file] {
+            display: none;
+        }
+
+        .button-css {
+            width: fit-content;
+            display: block;
+            font-size: 16px;
+            font-weight: 700;
+            color: #444;
+            line-height: 1.3;
+            padding: .6em 1.4em .5em .8em;
+            margin: 15px 0 0 0;
+            border: 1px solid #aaa;
+            box-shadow: 0 1px 0 1px rgba(0, 0, 0, .04);
+            border-radius: .5em;
+            -moz-appearance: none;
+            -webkit-appearance: none;
+            appearance: none;
+            background-color: #fff;
+            background-image: linear-gradient(to bottom, #eee 0%, #ddd 100%);
+            background-repeat: repeat;
+        }
+
+        .button-css:hover {
+            filter: brightness(0.9);
+        }
+
+        .button-css:active {
+            filter: brightness(0.8);
+        }
+
+        .button-css:disabled {
+            filter: brightness(1.1);
+            color: #bbb;
+            border-color: #ccc;
+        }
+        
+        /* class applies to select element itself, not a wrapper element */
+        .select-css {
+            display: block;
+            font-size: 16px;
+            font-weight: 700;
+            color: #444;
+            line-height: 1.3;
+            padding: .6em 1.4em .5em .8em;
+            margin: 15px 0 0 0;
+            border: 1px solid #aaa;
+            box-shadow: 0 1px 0 1px rgba(0, 0, 0, .04);
+            border-radius: .5em;
+            -moz-appearance: none;
+            -webkit-appearance: none;
+            appearance: none;
+            background-color: #fff;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'),
+                linear-gradient(to bottom, #eee 0%, #ddd 100%);
+            background-repeat: no-repeat, repeat;
+            /* arrow icon position (1em from the right, 50% vertical) , then gradient position*/
+            background-position: right .7em top 50%, 0 0;
+            /* icon size, then gradient */
+            background-size: .65em auto, 100%;
+        }
+
+        /* Hide arrow icon in IE browsers */
+        .select-css::-ms-expand {
+            display: none;
+        }
+
+        /* Hover style */
+        .select-css:hover {
+            border-color: #888;
+        }
+
+        /* Focus style */
+        .select-css:focus {
+            border-color: #aaa;
+            /* It'd be nice to use -webkit-focus-ring-color here but it doesn't work on box-shadow */
+            box-shadow: 0 0 1px 3px rgba(59, 153, 252, .7);
+            box-shadow: 0 0 0 3px -moz-mac-focusring;
+            color: #222;
+            outline: none;
+        }
+
+        /* Set options to normal weight */
+        .select-css option {
+            font-weight: normal;
+        }
+
+        footer {
+            position: sticky;
+            top: 100vh;
+            padding: 10px 20px;
+            background-color: #bbb;
+            color: #555;
+            font-size: 11px;
+        }
+
+        footer a {
+            color: #444;
+            text-decoration: none;
+        }
+
+        footer b,
+        footer b a {
+            color: #111;
+        }
+        
+        td {
+            vertical-align: top;
+        }
+
+    </style>
+</head>
+
+<body>
+    <nav>
+        <ul>
+            <li id="setup-tab"><a onclick="navTo('setup');">Setup</a></li>
+            <li id="synergy-tab"><a onclick="navTo('synergy');">Manage Class Lists</a></li>
+            <li id="canvas-tab"><a onclick="navTo('canvas');">Load Canvas Reports</a></li>
+            <li id="zoom-tab"><a onclick="navTo('zoom');">Load Zoom Reports</a></li>
+            <li id="reports-tab"><a onclick="navTo('reports');">Get Reports</a></li>
+        </ul>
+    </nav>
+    <div id="setup" class="panel">
+        <h2>Setup:</h2>
+        Instructions:
+        <ul>
+            <li>
+                It is not necessary to fill out all of the blanks below.
+            </li>
+            <li>
+                Class periods should be numeric, should each be unique, and should match the periods shown in Synergy.
+            </li>
+            <li>
+                For class periods that have the same course subject (that have the same parent course for Canvas), be sure that the course subject is spelled the same in each entry!
+            </li>
+            <li>
+                Zoom meeting IDs are 11-digit numbers.  Spaces are not necessary and they will be deleted automatically.
+            </li>
+            <li>
+                The Canvas "People" link should link to your parent course in Canvas and it can be used in multiple boxes below.
+            </li>
+        </ul>
+        <table>
+            <tr>
+                <th>Period</th>
+                <th>Course</th>
+                <th>Zoom Recurring Meeting ID</th>
+                <th>Canvas Course "People" URL</th>
+            </tr>
+            <tr>
+                <td><input id="period-0" type="text" size="4" /></td>
+                <td><input id="course-0" type="text" size="12" /></td>
+                <td><input id="zoom-id-0" type="text" /></td>
+                <td><input id="canvas-link-0" type="text" size="25" /></td>
+            </tr>
+            <tr>
+                <td><input id="period-1" type="text" size="4" /></td>
+                <td><input id="course-1" type="text" size="12" /></td>
+                <td><input id="zoom-id-1" type="text" /></td>
+                <td><input id="canvas-link-1" type="text" size="25" /></td>
+            </tr>
+            <tr>
+                <td><input id="period-2" type="text" size="4" /></td>
+                <td><input id="course-2" type="text" size="12" /></td>
+                <td><input id="zoom-id-2" type="text" /></td>
+                <td><input id="canvas-link-2" type="text" size="25" /></td>
+            </tr>
+            <tr>
+                <td><input id="period-3" type="text" size="4" /></td>
+                <td><input id="course-3" type="text" size="12" /></td>
+                <td><input id="zoom-id-3" type="text" /></td>
+                <td><input id="canvas-link-3" type="text" size="25" /></td>
+            </tr>
+            <tr>
+                <td><input id="period-4" type="text" size="4" /></td>
+                <td><input id="course-4" type="text" size="12" /></td>
+                <td><input id="zoom-id-4" type="text" /></td>
+                <td><input id="canvas-link-4" type="text" size="25" /></td>
+            </tr>
+            <tr>
+                <td><input id="period-5" type="text" size="4" /></td>
+                <td><input id="course-5" type="text" size="12" /></td>
+                <td><input id="zoom-id-5" type="text" /></td>
+                <td><input id="canvas-link-5" type="text" size="25" /></td>
+            </tr>
+            <tr>
+                <td><input id="period-6" type="text" size="4" /></td>
+                <td><input id="course-6" type="text" size="12" /></td>
+                <td><input id="zoom-id-6" type="text" /></td>
+                <td><input id="canvas-link-6" type="text" size="25" /></td>
+            </tr>
+            <tr>
+                <td><input id="period-7" type="text" size="4" /></td>
+                <td><input id="course-7" type="text" size="12" /></td>
+                <td><input id="zoom-id-7" type="text" /></td>
+                <td><input id="canvas-link-7" type="text" size="25" /></td>
+            </tr>
+            <tr>
+                <td><input id="period-8" type="text" size="4" /></td>
+                <td><input id="course-8" type="text" size="12" /></td>
+                <td><input id="zoom-id-8" type="text" /></td>
+                <td><input id="canvas-link-8" type="text" size="25" /></td>
+            </tr>
+        </table>
+        <button class="button-css" onclick="saveSettings();">Save Settings</button>
+    </div>
+    <div id="synergy" class="panel">
+        <h2>Class (Synergy) entry:</h2>
+        <select id="synergy-course" class="select-css"></select><br>
+        <table class="sub-page">
+            <tr>
+                <td>
+                    <b>Whole class data:</b> <i id="synergy-record-count"></i><br><textarea id="synergyStr" wrap="off" cols="30" rows="5"></textarea><br>
+                    <button id="get-synergy-data" class="button-css" onclick="loadClass($('#synergy-course').value,$('#synergyStr').value)" disabled>Import Synergy data</button>
+                </td>
+                <td>&nbsp;&nbsp;&nbsp;</td>
+                <td>
+                    <b>Single student entry:</b><br>
+                    <table>
+                        <tr>
+                            <td>Student ID</td>
+                            <td>Last Name</td>
+                            <td>First Name</td>
+                        </tr>
+                        <tr>
+                            <td><input id="add-id" type="text" size="8" /></td>
+                            <td><input id="add-last" type="text" size="18" /></td>
+                            <td><input id="add-first" type="text" size="12" /></td>
+                        </tr>
+                    </table>
+                    <button id="add-synergy-data" class="button-css" onclick="loadClass($('#synergy-course').value, `${$('#add-id').value}\t${$('#add-first').value}\t${$('#add-last').value}`)" disabled>Add Student</button>
+                </td>
+                <td>&nbsp;&nbsp;&nbsp;</td>
+                <td>
+                    <b>Remove a single student:</b><br>
+                    <i>Not implemented yet. You can reload whole-class lists to remove students.</i>
+                </td>
+            </tr>
+        </table>
+        <br>
+        <hr>
+        <div id="show-synergy-list"></div>
+    </div>
+
+    <div id="canvas" class="panel">
+        <h2>Canvas Report Entry:</h2>
+        <i id="canvas-count">0 records</i><br>
+        <select id="canvas-course" class="select-css"></select><br>
+        <a id="canvas-course-link" href="#" target="_blank" style="display: none;">Canvas course link</a>
+        Data:<br>
+        <textarea id="canvasStr" wrap="off" cols="30" rows="5"></textarea><br>
+        <button id="get-canvas-data" class="button-css" onclick="getCanvasStudents($('#canvasStr').value)" disabled>Import Canvas data</button>
+    </div>
+
+    <div id="zoom" class="panel">
+        <h2>Zoom report entry:</h2>
+        <div id="zoom-report-link"></div>
+        <i id="zoom-count">0 records</i><br>
+        <label for="file-selector" class="button-css">
+            Choose Files
+            <input type="file" id="file-selector" multiple>
+        </label>
+        <div id="file-selection-list"></div>
+        <!--<textarea id="zoomStr" wrap="off" cols="30" rows="5"></textarea><br>-->
+        <button id="get-zoom-data" class="button-css" onclick="getZoomStudents()">Import Zoom data</button>
+    </div>
+
+    <div id="reports" class="panel">
+        <h2>Attendance report for period:</h2>
+        <select id="report-period" class="select-css"></select>
+        <table>
+            <tr>
+                <td>
+                     <button id="show-absent" class="button-css" onclick="showAttendance($('#report-period').value)" disabled>Show absences</button>               
+                </td>
+                <td>&nbsp;&nbsp;&nbsp;</td>
+                <td>
+                    <button id="show-all" class="button-css" disabled>Show all activity</button>                
+                    <i style="color:#aaa">Not implemented yet</i>
+                </td>
+            </tr>
+        </table>
+        <br><hr><br>
+        <div id="attendanceResult"></div>
+    </div>
+
+    <footer>
+        <b>Attendance <a href="https://www.definition-of.com/Combobulator#:~:text=Definition,highly%20unusual%20product%20or%20outcome." target="_blank">Combobulator</a></b> - <a href="https://github.com/MatzElectronics" target="_blank">Matthew Matz</a> &copy;2020. All rights reserved.
+    </footer>
+    <script>
+        const CANVAS_ACTIVITY_WINDOW = 24 * 4;
+        const ZOOM_ACTIVITY_WINDOW = 20 * 4;
+        
+        const fileSelector = document.getElementById('file-selector');
+
+        function navTo(panelId) {
+            let panels = document.querySelectorAll('.panel');
+            for (let i = 0; i < panels.length; i++) {
+                panels[i].style.display = 'none';
+            }
+            let tabs = document.querySelectorAll('nav li');
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].style.backgroundColor = '#333';
+            }
+            $('#' + panelId).style.display = 'block';
+            $('#' + panelId + '-tab').style.backgroundColor = '#337';
+            
+            if (panelId === 'zoom') {
+                let todayTime = new Date();
+                let month = todayTime.getMonth() + 1;
+                let day = todayTime.getDate();
+                let year = todayTime.getFullYear();
+                let dateString = month + "/" + day + "/" + year;
+                $('#zoom-report-link').innerHTML = `<a href="https://zoom.us/account/my/report?from=${dateString}&to=${dateString}" target="_blank">Today's Zoom Reports</a> (must be logged in to Zoom)`;
+            }
+
+        }
+
+        function getZoomStudents() {
+            let failCount = 0;
+            if (fileSelector.files) {
+                for (let i = 0; i < fileSelector.files.length; i++) {
+                    if (fileSelector.files[i]) {
+                        var reader = new FileReader();
+
+                        reader.onload = (e) => {
+                            let tempList = e.target.result;
+                            if (!processZoomStudents(tempList)) {
+                                failCount++;
+                            }
+                        }
+
+                        reader.readAsText(fileSelector.files[i]);
+                    }
+                }
+            }
+            setTimeout(() => {
+                fileSelector.value = '';
+                if (failCount > 0) {
+                    alert('Warning: Unable to load ' + failCount + ' files.');
+                }
+            }, 2000);
+        }
+
+        window.zoomData = [];
+        window.studentList = JSON.parse(localStorage.getItem("EDGEAC-studentList")) || [];
+        window.canvasData = [];
+
+        window.courseNames = [];
+        window.periodNames = [];
+
+        window.settings = [];
+
+        function $(e) {
+            return document.querySelector(e);
+        }
+
+        function getUniqueSections() {
+            for (let i = 0; i < studentList.length; i++) {
+                if (courseNames.indexOf(courseFromPeriod(studentList[i].period)) === -1) {
+                    courseNames.push(courseFromPeriod(studentList[i].period));
+                }
+                if (periodNames.indexOf(studentList[i].period) === -1) {
+                    periodNames.push(studentList[i].period);
+                }
+            }
+
+            periodNames.sort();
+            courseNames.sort();
+
+            let topChoice = `<option value="none" selected>Choose a course</option>`;
+            $('#canvas-course').innerHTML = topChoice;
+            $('#report-period').innerHTML = topChoice;
+            $('#synergy-course').innerHTML = topChoice;
+
+            for (let i = 0; i < courseNames.length; i++) {
+                $('#canvas-course').innerHTML += `<option value="${courseNames[i]}">${courseNames[i]}</option>`;
+            }
+            for (let i = 0; i < periodNames.length; i++) {
+                $('#report-period').innerHTML += `<option value="${periodNames[i]}">${periodNames[i]} - ${courseFromPeriod(periodNames[i])}</option>`;
+            }
+            for (let i = 0; i < settings.length; i++) {
+                $('#synergy-course').innerHTML += `<option value="${settings[i].period}">${settings[i].period} - ${settings[i].course}</option>`;
+            }
+        }
+
+        function withinHours(timeDifference, hourCount) {
+            return (!isNaN(timeDifference) && timeDifference !== 0 && timeDifference < hourCount * 60 * 60 * 1000);
+        }
+
+        function getCanvasStudents(canvasRawData) {
+            canvasRawData = canvasRawData.replace(/[\n\t]+/g, '|')
+                .replace(/\|([0-9]{6}\|)/g, '\n$1')
+                .replace(/([0-9]+) at ([0-9:]+)([ap]+m)\|/g, (m, p1, p2, p3) => {
+                    return `${p1} ${(new Date()).getYear() + 1900} ${p2} ${p3}|${p2}${p3}|`;
+                }).split('\n');
+
+            let studentName = '';
+
+            canvasRawData.forEach(dataRow => {
+                let timeLen = 0;
+                let timeLast = 0;
+                let tempData = dataRow.split('|');
+
+                if (tempData[4]) {
+                    timeLast = Date.now() - Date.parse(tempData[4]);
+                }
+                if (tempData[6]) {
+                    let tempTime = tempData[6].split(':');
+                    tempTime[0] = parseInt(tempTime[0]);
+                    tempTime[1] = parseInt(tempTime[1]);
+                    if (tempTime.length === 3) {
+                        tempTime[2] = parseInt(tempTime[2]);
+                        timeLen = tempTime[0] * 60 * 60 + tempTime[1] * 60 + tempTime[2];
+                    } else {
+                        timeLen = tempTime[0] * 60 + tempTime[1];
+                    }
+                }
+                if (!isNaN(timeLen) && withinHours(timeLast, CANVAS_ACTIVITY_WINDOW)) {
+                    canvasData.push({
+                        'id': tempData[0],
+                        'name': studentName,
+                        'duration': Math.round(timeLen / 60),
+                        'last_access': tempData[5],
+                        'course': $('#canvas-course').value
+                    });
+                }
+                studentName = tempData[tempData.length - 1];
+            });
+
+            $('#canvas-count').innerText = canvasData.length + ' records';
+        }
+
+        function processZoomStudents(zoomRawData) {
+            zoomRawData = zoomRawData.replace(/\@salemkeizer.org,/g, ',').split('\n');
+            let foundFileHeader = false;
+            let meetingId = null;
+            let meetingCourse = '';
+            let meetingDateTime = null;
+            let successFlag = false;
+            let timeFlag = false;
+
+            for (i = 0; i < zoomRawData.length; i++) {
+                let tempData = zoomRawData[i].trim().replace(/,\h*(?![^,]+")/g,'|').split('|');
+                if (i === 0 && tempData[0] === 'Meeting ID') {
+                    foundFileHeader = true;
+                }
+                if (foundFileHeader && i === 1) {
+                    meetingId = tempData[0].trim();
+                    meetingDateTime = Date.now() - Date.parse(tempData[2]);
+                    timeFlag = withinHours(meetingDateTime, ZOOM_ACTIVITY_WINDOW);
+                }
+
+                if (timeFlag && tempData[1] && tempData[1].indexOf('@') === -1 && tempData[1].length === 6) {
+                    successFlag = true;
+                    zoomData.push({
+                        'id': tempData[1],
+                        'name': tempData[0],
+                        'duration': tempData[2],
+                        'course': courseFromZoomId(meetingId)
+                    });
+                }
+            }
+
+            $('#zoom-count').innerText = zoomData.length + ' records';
+            
+            return successFlag;
+        }
+
+        function removeClass(period) {
+            let tempStudentList = [];
+            for (let i = 0; i < studentList.length; i++) {
+                if (studentList[i].period !== period) {
+                    tempStudentList.push(studentList[i]);
+                }
+            }
+            studentList = tempStudentList;
+            tempStudentList = [];
+        }
+
+        function courseFromPeriod(period) {
+            return settings.find((elem) => {
+                return elem.period === period
+            }).course;
+        }
+        
+        function linkFromCourse(course) {
+            return settings.find((elem) => {
+                return elem.course === course
+            }).canvasLink;
+        }
+        
+        function courseFromZoomId(zoomId) {
+            return settings.find((elem) => {
+                return elem.zoomId === zoomId
+            }).course;
+        }
+
+        function loadClass(period, data) {
+            // remove existing data for this class period
+            if ($('#synergyStr').value !== '') {
+                removeClass(period);
+            }
+
+            // parse the new data and add it to the array
+            synergyRawData = data.split('\n');
+            let recordCount = 0;
+            synergyRawData.forEach(dataRow => {
+                tempData = dataRow.trim().split('\t');
+                if (tempData[0].length === 6) {
+                    studentList.push({
+                        'id': tempData[0],
+                        'first': tempData[tempData.length - 2],
+                        'last': tempData[tempData.length - 1],
+                        'period': period
+                    });
+                    recordCount++;
+                }
+            });
+
+            localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
+            getUniqueSections();
+            $('#synergyStr').value = '';
+            $('#synergy-record-count').innerText = recordCount + ' records imported/updated.'
+            populateStudentList();
+        }
+
+        function saveSettings() {
+            settings = [];
+
+            for (let i = 0; i < 9; i++) {
+                let tempPeriod = $('#period-' + i).value.trim();
+                if (tempPeriod && tempPeriod !== '') {
+                    settings[i] = {
+                        period: tempPeriod,
+                        course: $('#course-' + i).value.trim(),
+                        zoomId: $('#zoom-id-' + i).value.replace(/[^0-9]/g, ''),
+                        canvasLink: $('#canvas-link-' + i).value.trim()
+                    }
+                }
+            }
+
+            settings.sort((a, b) => {
+                const bandA = a.period.toUpperCase();
+                const bandB = b.period.toUpperCase();
+
+                let comparison = 0;
+                if (bandA > bandB) {
+                    comparison = 1;
+                } else if (bandA < bandB) {
+                    comparison = -1;
+                }
+                return comparison;
+            });
+
+            localStorage.setItem('EDGEAC-settings', JSON.stringify(settings));
+
+            populateSettings();
+        }
+
+        function populateSettings() {
+            window.settings = JSON.parse(localStorage.getItem("EDGEAC-settings")) || [];
+            if (settings && settings.length > 0) {
+                for (let i = 0; i < 9; i++) {
+                    $('#period-' + i).value = (settings[i] && settings[i].period ? settings[i].period : '');
+                    $('#course-' + i).value = (settings[i] && settings[i].course ? settings[i].course : '');
+                    $('#zoom-id-' + i).value = (settings[i] && settings[i].zoomId ? settings[i].zoomId : '');
+                    $('#canvas-link-' + i).value = (settings[i] && settings[i].canvasLink ? settings[i].canvasLink : '');
+                }
+            }
+        }
+        
+        function populateStudentList() {
+            let tempStudentList = [];
+            studentList.forEach((record) => {
+                if ($('#synergy-course').value !== 'none' && record.period === $('#synergy-course').value) {
+                    tempStudentList.push(record.last + ', ' + record.first);
+                }
+            });
+            tempStudentList.sort();
+            $('#show-synergy-list').innerHTML = '<br><b>' + tempStudentList.length + ' Students:</b><br><br>' + tempStudentList.join('<br>');
+        }
+        
+        function showAttendance(period) {
+            // find the course name
+            let courseName = '';
+            for (let i = 0; i < studentList.length; i++) {
+                if (studentList[i].period === period) {
+                    courseName = courseFromPeriod(period);
+                    break;
+                }
+            }
+
+            let attendedList = [];
+            $('#attendanceResult').innerHTML = '<b>' + courseName + ': period ' + period + '</b><br><br>';
+
+            // get data from canvas
+            for (let i = 0; i < canvasData.length; i++) {
+                if (canvasData[i].course === courseName) {
+                    attendedList.push(canvasData[i].id);
+                }
+            }
+
+            // get data from zoom
+            for (let i = 0; i < zoomData.length; i++) {
+                if (zoomData[i].course === courseName) {
+                    attendedList.push(zoomData[i].id);
+                }
+            }
+
+            let attended = [];
+            for (let i = 0; i < studentList.length; i++) {
+                if (studentList[i].period === period && attendedList.indexOf(studentList[i].id) === -1) {
+                    attended.push(`${studentList[i].last},  ${studentList[i].first}`);
+                }
+            }
+            attended.sort();
+            $('#attendanceResult').innerHTML += attended.join('<br>');
+        }
+
+        populateSettings();
+        getUniqueSections();
+        navTo('canvas');
+
+        $('#file-selector').addEventListener("change", function() {
+            $('#file-selection-list').innerHTML = '';
+            let fileList = $('#file-selector').files;
+            for (let i = 0; i < fileList.length; i++) {
+                $('#file-selection-list').innerHTML += fileList[i].name + '<br>';
+            }
+        });
+
+        $('#synergy-course').addEventListener('change', () => {
+            $('#get-synergy-data').disabled = ($('#synergy-course').value === 'none' ? true : false);
+            $('#add-synergy-data').disabled = ($('#synergy-course').value === 'none' ? true : false);
+            populateStudentList();
+        });
+        $('#canvas-course').addEventListener('change', () => {
+            $('#canvas-course-link').style.display = ($('#canvas-course').value === 'none' ? 'none' : 'block');
+            $('#canvas-course-link').setAttribute('href', $('#canvas-course').value === 'none' ? '#' : linkFromCourse($('#canvas-course').value));
+            $('#get-canvas-data').disabled = ($('#canvas-course').value === 'none' ? true : false);
+        });
+        $('#report-period').addEventListener('change', () => {
+            //$('#show-all').disabled = ($('#report-period').value === 'none' ? true : false);
+            $('#show-absent').disabled = ($('#report-period').value === 'none' ? true : false);
+        });
+
+    </script>
+
+</body>
+
+</html>
