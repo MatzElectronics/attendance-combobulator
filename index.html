@@ -218,7 +218,11 @@ Copyright: 2020, all rights reserved
             <li>
                 The Canvas "People" link should link to your parent course in Canvas and it can be used in multiple boxes below.
             </li>
+            <li>
+                Settings and student lists are stored on your computer in the same place as "cookies" are. <b>If you clear your browser's cache/cookies, it will erase your settings and student lists!</b>
+            </li>
         </ul>
+        <br>
         <table>
             <tr>
                 <th>Period</th>
@@ -360,15 +364,19 @@ Copyright: 2020, all rights reserved
     </div>
 
     <footer>
-        <b>Attendance <a href="https://www.definition-of.com/Combobulator#:~:text=Definition,highly%20unusual%20product%20or%20outcome." target="_blank">Combobulator</a></b> - <a href="https://github.com/MatzElectronics" target="_blank">Matthew Matz</a> &copy;2020. All rights reserved.
+        <b>Attendance <a href="https://www.definition-of.com/Combobulator" target="_blank">Combobulator</a></b> - <a href="https://github.com/MatzElectronics" target="_blank">Matthew Matz</a> &copy;2020. All rights reserved.
     </footer>
     <script>
         const CANVAS_ACTIVITY_WINDOW = 24;
         const ZOOM_ACTIVITY_WINDOW = 20;
+        const DATA_VALID_WINDOW = 18;
 
         window.studentList = JSON.parse(localStorage.getItem("EDGEAC-studentList")) || [];
         window.canvasData = [];
         window.zoomData = [];
+        
+        window.canvasDataLastUpdateTimeout = null;
+        window.zoomDataLastUpdateTimeout = null;
 
         window.courseNames = [];
         window.periodNames = [];
@@ -463,7 +471,13 @@ Copyright: 2020, all rights reserved
             }
         }
 
-        function withinHours(timeDifference, hourCount) {
+        function withinHours(timeString, hourCount) {
+            let timeDifference = null;
+            if (typeof(timeString) === 'string') {
+                timeDifference = Date.now() - Date.parse(timeString);
+            } else {
+                timeDifference = Date.now - timeString;
+            }
             return (!isNaN(timeDifference) && timeDifference !== 0 && timeDifference < hourCount * 60 * 60 * 1000);
         }
 
@@ -481,9 +495,6 @@ Copyright: 2020, all rights reserved
                 let timeLast = 0;
                 let tempData = dataRow.split('|');
 
-                if (tempData[4]) {
-                    timeLast = Date.now() - Date.parse(tempData[4]);
-                }
                 if (tempData[6]) {
                     let tempTime = tempData[6].split(':');
                     tempTime[0] = parseInt(tempTime[0]);
@@ -495,7 +506,7 @@ Copyright: 2020, all rights reserved
                         timeLen = tempTime[0] * 60 + tempTime[1];
                     }
                 }
-                if (!isNaN(timeLen) && withinHours(timeLast, CANVAS_ACTIVITY_WINDOW)) {
+                if (!isNaN(timeLen) && withinHours(tempData[4] || 0, CANVAS_ACTIVITY_WINDOW)) {
                     canvasData.push({
                         'id': tempData[0],
                         'name': studentName,
@@ -503,6 +514,15 @@ Copyright: 2020, all rights reserved
                         'last_access': tempData[5],
                         'course': $('#canvas-course').value
                     });
+                    
+                    // Erase the canvas data if it's been too long.
+                    if (canvasDataLastUpdateTimeout) {
+                        clearTimeout(canvasDataLastUpdateTimeout);
+                    }
+                    canvasDataLastUpdateTimeout = setTimeout(() => {
+                        canvasData = [];
+                        $('#canvas-count').innerText = '0 records';
+                    }, 1000 * 3600 * DATA_VALID_WINDOW);
                 }
                 studentName = tempData[tempData.length - 1];
             });
@@ -531,8 +551,7 @@ Copyright: 2020, all rights reserved
                 }
                 if (foundFileHeader && i === 1) {
                     meetingId = tempData[0].trim();
-                    meetingDateTime = Date.now() - Date.parse(tempData[2]);
-                    timeFlag = withinHours(meetingDateTime, ZOOM_ACTIVITY_WINDOW);
+                    timeFlag = withinHours(tempData[2], ZOOM_ACTIVITY_WINDOW);
                 }
 
                 if (timeFlag && tempData[1] && tempData[1].indexOf('@') === -1 && tempData[1].length === 6) {
@@ -543,6 +562,15 @@ Copyright: 2020, all rights reserved
                         'duration': tempData[2],
                         'course': courseFromZoomId(meetingId)
                     });
+                    
+                    // Erase the zoom data if it's been too long.
+                    if (zoomDataLastUpdateTimeout) {
+                        clearTimeout(zoomDataLastUpdateTimeout);
+                    }
+                    zoomDataLastUpdateTimeout = setTimeout(() => {
+                        zoomData = [];
+                        $('#zoom-count').innerText = '0 records';
+                    }, 1000 * 3600 * DATA_VALID_WINDOW);
                 }
             }
 
@@ -571,6 +599,7 @@ Copyright: 2020, all rights reserved
                 studentList.splice(studentIndex, 1);
             }
             
+            localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
             populateStudentList();
         }
 
@@ -696,9 +725,10 @@ Copyright: 2020, all rights reserved
         function showAttendance(period, showDetails) {
             
             if (period === 'none') {
-                $('#attendanceResult').innerHTML = '';
                 return;
             }
+            
+            $('#attendanceResult').innerHTML = '';
             
             let attendedList = [];
             let participationData = [];
@@ -709,7 +739,7 @@ Copyright: 2020, all rights reserved
             // find the course name
             let courseName = courseFromPeriod(period);
 
-            $('#attendanceResult').innerHTML = '<b>' + courseName + ': Period ' + period + '</b><br><br>';
+            $('#attendanceResult').innerHTML += '<b>' + courseName + ': Period ' + period + '</b><br><br>';
 
             // get data from canvas
             for (let i = 0; i < canvasData.length; i++) {
@@ -721,6 +751,15 @@ Copyright: 2020, all rights reserved
                     });
                     foundCanvasData = true;
                 }
+            }
+
+            // is there a zoom ID for this period?
+            let isZoom = false;
+            let zoomIndex = settings.findIndex((elem) => {
+                return elem.period === period
+            });
+            if (settings[zoomIndex].zoomId.length === 11) {
+                isZoom = true;
             }
 
             // get data from zoom
@@ -758,7 +797,7 @@ Copyright: 2020, all rights reserved
             }
             attended.sort();
 
-            if (!foundZoomData) {
+            if (!foundZoomData && isZoom) {
                 $('#attendanceResult').innerHTML += '<i style="background-color:#ffc;">WARNING: No Zoom Data was found for this class period.</i><br>';
             }
             if (!foundCanvasData) {
@@ -772,7 +811,8 @@ Copyright: 2020, all rights reserved
                     '<td>&nbsp;Attendance&nbsp;</td>' + 
                     '<td style="text-align:center;">&nbsp;Student&nbsp;</td>' + 
                     '<td>&nbsp;Minutes in Canvas (Cumulative)&nbsp;</td>' + 
-                    '<td>&nbsp;Minutes in Zoom (Today)&nbsp;</td></tr>';
+                    (isZoom ? '<td>&nbsp;Minutes in Zoom (Today)&nbsp;</td>' : '') + 
+                    '</tr>';
                 
                 for (let i = 0; i < attended.length; i++) {
                     let rowData = attended[i].split('|');
@@ -782,7 +822,8 @@ Copyright: 2020, all rights reserved
                     let rowText = rowTag + '<td>' + rowData[1] + '</td>' + 
                         '<td>' + rowData[0] + '</td>' +  // Student name
                         '<td style="text-align:center;">' + rowData[2] + '</td>' +  // Canvas time
-                        '<td style="text-align:center;">' + rowData[3] + '</td></tr>';  // Zoom time
+                        (isZoom ? '<td style="text-align:center;">' + rowData[3] + '</td>' : '') +  // Zoom time
+                        '</tr>';
 
                     tableOutput += rowText;
                 }
