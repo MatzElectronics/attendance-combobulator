@@ -593,6 +593,8 @@ Copyright: 2020, all rights reserved
                     zoomDataLastUpdateTimeout = setTimeout(() => {
                         zoomData = [];
                         $('#zoom-count').innerText = '0 records';
+                        $('#zoom-non-match').innerHTML = '';
+                        $('#zoom-non-match').style.display = 'none';
                     }, 1000 * 3600 * DATA_VALID_WINDOW);
 
                 } else if (timeFlag && tempData[0].length > 0 && i > 3 && tempData[1].indexOf('k12.or.us') === -1) {
