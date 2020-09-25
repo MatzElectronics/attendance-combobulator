@@ -186,6 +186,12 @@ Copyright: 2020, all rights reserved
             vertical-align: top;
         }
 
+        #zoom-non-match {
+            padding: 10px;
+            background: #ffa;
+            display: none;
+        }
+
     </style>
 </head>
 
@@ -344,6 +350,8 @@ Copyright: 2020, all rights reserved
 
     <div id="zoom" class="panel">
         <h2>Zoom report entry:</h2>
+        <p>Note: If a student is <b>not</b> logged in using their school account, this will attempt to identify the student by their <i>username</i>, as long as their username is a close match to their <i>"Firstname Lastname"</i>. Capitalization does not matter. Usernames to dissimilar be matched will be listed below.</p>
+        <br>
         <div id="zoom-report-link"></div>
         <i id="zoom-count">0 records</i><br>
         <label for="file-selector" class="button-css">
@@ -353,6 +361,9 @@ Copyright: 2020, all rights reserved
         <div id="file-selection-list"></div>
         <!--<textarea id="zoomStr" wrap="off" cols="30" rows="5"></textarea><br>-->
         <button id="get-zoom-data" class="button-css" onclick="getZoomStudents()">Import Zoom data</button>
+        <br>
+        <hr><br>
+        <div id="zoom-non-match"></div>
     </div>
 
     <div id="reports" class="panel">
@@ -374,7 +385,7 @@ Copyright: 2020, all rights reserved
         window.studentList = JSON.parse(localStorage.getItem("EDGEAC-studentList")) || [];
         window.canvasData = [];
         window.zoomData = [];
-        
+
         window.canvasDataLastUpdateTimeout = null;
         window.zoomDataLastUpdateTimeout = null;
 
@@ -514,7 +525,7 @@ Copyright: 2020, all rights reserved
                         'last_access': tempData[5],
                         'course': $('#canvas-course').value
                     });
-                    
+
                     // Erase the canvas data if it's been too long.
                     if (canvasDataLastUpdateTimeout) {
                         clearTimeout(canvasDataLastUpdateTimeout);
@@ -531,7 +542,7 @@ Copyright: 2020, all rights reserved
             $('#canvasStr').value = '';
             $('#canvas-link-wrapper').style.display = 'none';
             $('#canvas-course').value = 'none';
-            
+
         }
 
         function processZoomStudents(zoomRawData) {
@@ -541,6 +552,10 @@ Copyright: 2020, all rights reserved
             let meetingDateTime = null;
             let successFlag = false;
             let timeFlag = false;
+
+            let periodStudents = [];
+            let foundIds = [];
+            let nonMatch = [];
 
             zoomRawData = zoomRawData.replace(/\@salemkeizer.org,/g, ',').split('\n');
 
@@ -552,26 +567,56 @@ Copyright: 2020, all rights reserved
                 if (foundFileHeader && i === 1) {
                     meetingId = tempData[0].trim();
                     timeFlag = withinHours(tempData[2], ZOOM_ACTIVITY_WINDOW);
+                    let currentPeriod = periodFromZoomId(meetingId);
+                    periodStudents = studentList.filter((e) => {
+                        return e.period === currentPeriod
+                    });
                 }
 
                 if (timeFlag && tempData[1] && tempData[1].indexOf('@') === -1 && tempData[1].length === 6) {
+
                     successFlag = true;
+                    foundIds.push(tempData[1]);
+
                     zoomData.push({
                         'id': tempData[1],
                         'name': tempData[0],
                         'duration': tempData[2],
                         'course': courseFromZoomId(meetingId)
                     });
-                    
+
                     // Erase the zoom data if it's been too long.
                     if (zoomDataLastUpdateTimeout) {
                         clearTimeout(zoomDataLastUpdateTimeout);
                     }
+
                     zoomDataLastUpdateTimeout = setTimeout(() => {
                         zoomData = [];
                         $('#zoom-count').innerText = '0 records';
                     }, 1000 * 3600 * DATA_VALID_WINDOW);
+
+                } else if (timeFlag && tempData[0].length > 0 && i > 3 && tempData[1].indexOf('k12.or.us') === -1) {
+
+                    let studentIndex = findStudentByName(tempData[0], periodStudents);
+
+                    if (studentIndex > -1) {
+                        let studentElement = periodStudents.splice(studentIndex, 1)[0];
+                        successFlag = true;
+                        zoomData.push({
+                            'id': studentElement.id,
+                            'name': tempData[0],
+                            'duration': tempData[2],
+                            'course': courseFromZoomId(meetingId)
+                        });
+
+                    } else {
+                        nonMatch.push(tempData);
+                    }
                 }
+            }
+
+            if (nonMatch.length > 0) {
+                findSimilarNames(nonMatch, periodStudents, foundIds, meetingId);
             }
 
             $('#zoom-count').innerText = zoomData.length + ' records';
@@ -589,44 +634,63 @@ Copyright: 2020, all rights reserved
             studentList = tempStudentList;
             tempStudentList = [];
         }
-        
+
         function removeStudent(studentId) {
             let studentIndex = studentList.findIndex((elem) => {
                 return elem.id === studentId
             });
-            
+
             if (studentIndex > -1) {
                 studentList.splice(studentIndex, 1);
             }
-            
+
             localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
             populateStudentList();
         }
 
         function courseFromPeriod(period) {
             return settings.find((elem) => {
-                return elem.period === period
+                return elem.period === period;
             }).course;
         }
 
         function linkFromCourse(course) {
             return settings.find((elem) => {
-                return elem.course === course
+                return elem.course === course;
             }).canvasLink;
         }
 
         function courseFromZoomId(zoomId) {
             return settings.find((elem) => {
-                return elem.zoomId === zoomId
+                return elem.zoomId === zoomId;
             }).course;
+        }
+
+        function periodFromZoomId(zoomId) {
+            return settings.find((elem) => {
+                return elem.zoomId === zoomId;
+            }).period;
         }
 
         function loadClass(period, data) {
             // remove existing data for this class period
             if ($('#synergyStr').value !== '') {
                 removeClass(period);
+            } else {
+                let checkStudent = null;
+                for (let i = 0; i < studentList.length; i++) {
+                    if (studentList[i].period === period && studentList[i].id === data.split('\t')[0]) {
+                        checkStudent = studentList[i];
+                        break;
+                    }
+                }
+
+                if (checkStudent) {
+                    alert(checkStudent.first + ' ' + checkStudent.last + ' already has that ID in this period!');
+                    return;
+                }
             }
-            
+
             $('#add-id').value = '';
             $('#add-first').value = '';
             $('#add-last').value = '';
@@ -711,31 +775,31 @@ Copyright: 2020, all rights reserved
             });
             tempStudentList.sort();
             tempMenuList.sort();
-            
+
             for (let i = 0; i < tempMenuList.length; i++) {
                 let menuItem = tempMenuList[i].split('|');
                 tempMenuList[i] = menuItem[1] + menuItem[0];
             }
-            
+
             $('#show-synergy-list').innerHTML = '<br><b>' + tempStudentList.length + ' Students:</b><br><br>' + tempStudentList.join('<br>');
-            
+
             $('#delete-student-menu').innerHTML = '<option value="none">Choose a student</option>' + tempMenuList.join('\n');
         }
 
         function showAttendance(period, showDetails) {
-            
+
             if (period === 'none') {
                 return;
             }
-            
+
             $('#attendanceResult').innerHTML = '';
-            
+
             let attendedList = [];
             let participationData = [];
             let attended = [];
             let foundZoomData = false;
             let foundCanvasData = false;
-            
+
             // find the course name
             let courseName = courseFromPeriod(period);
 
@@ -746,7 +810,7 @@ Copyright: 2020, all rights reserved
                 if (canvasData[i].course === courseName) {
                     attendedList.push(canvasData[i].id);
                     participationData.push({
-                        canvasDuration: canvasData[i].duration, 
+                        canvasDuration: canvasData[i].duration,
                         zoomDuration: '&nbsp;'
                     });
                     foundCanvasData = true;
@@ -769,8 +833,8 @@ Copyright: 2020, all rights reserved
                     if (listIndex === -1) {
                         attendedList.push(zoomData[i].id);
                         participationData.push({
-                            canvasDuration: '&nbsp;', 
-                            zoomDuration: zoomData[i].duration 
+                            canvasDuration: '&nbsp;',
+                            zoomDuration: zoomData[i].duration
                         });
                     } else {
                         participationData[listIndex].zoomDuration = zoomData[i].duration;
@@ -807,27 +871,27 @@ Copyright: 2020, all rights reserved
             if (!showDetails) {
                 $('#attendanceResult').innerHTML += (!foundCanvasData || !foundZoomData ? '<br>' : '') + attended.join('<br>');
             } else {
-                let tableOutput = '<table><tr style="font-weight:700;">' + 
-                    '<td>&nbsp;Attendance&nbsp;</td>' + 
-                    '<td style="text-align:center;">&nbsp;Student&nbsp;</td>' + 
-                    '<td>&nbsp;Minutes in Canvas (Cumulative)&nbsp;</td>' + 
-                    (isZoom ? '<td>&nbsp;Minutes in Zoom (Today)&nbsp;</td>' : '') + 
+                let tableOutput = '<table><tr style="font-weight:700;">' +
+                    '<td>&nbsp;Attendance&nbsp;</td>' +
+                    '<td style="text-align:center;">&nbsp;Student&nbsp;</td>' +
+                    '<td>&nbsp;Minutes in Canvas (Cumulative)&nbsp;</td>' +
+                    (isZoom ? '<td>&nbsp;Minutes in Zoom (Today)&nbsp;</td>' : '') +
                     '</tr>';
-                
+
                 for (let i = 0; i < attended.length; i++) {
                     let rowData = attended[i].split('|');
                     let lightBkg = (rowData[1] === 'absent' ? '#fdd' : '#fff');
                     let darkBkg = (rowData[1] === 'absent' ? '#ecc' : '#eee');
                     let rowTag = '<tr style="background-color:' + (i % 2 === 0 ? lightBkg : darkBkg) + ';">';
-                    let rowText = rowTag + '<td>' + rowData[1] + '</td>' + 
-                        '<td>' + rowData[0] + '</td>' +  // Student name
-                        '<td style="text-align:center;">' + rowData[2] + '</td>' +  // Canvas time
-                        (isZoom ? '<td style="text-align:center;">' + rowData[3] + '</td>' : '') +  // Zoom time
+                    let rowText = rowTag + '<td>' + rowData[1] + '</td>' +
+                        '<td>' + rowData[0] + '</td>' + // Student name
+                        '<td style="text-align:center;">' + rowData[2] + '</td>' + // Canvas time
+                        (isZoom ? '<td style="text-align:center;">' + rowData[3] + '</td>' : '') + // Zoom time
                         '</tr>';
 
                     tableOutput += rowText;
                 }
-                
+
                 $('#attendanceResult').innerHTML += tableOutput + '</table>';
             }
         }
@@ -862,6 +926,143 @@ Copyright: 2020, all rights reserved
             $('#canvas-course-link').setAttribute('href', $('#canvas-course').value === 'none' ? '#' : linkFromCourse($('#canvas-course').value));
             $('#get-canvas-data').disabled = ($('#canvas-course').value === 'none' ? true : false);
         });
+
+
+        function findStudentByName(name, periodStudents) {
+            let foundId = null;
+
+            for (let i = 0; i < periodStudents.length; i++) {
+                if ((periodStudents[i].first + ' ' + periodStudents[i].last).toLowerCase() == name.toLowerCase()) {
+                    foundId = i;
+                }
+            }
+
+            return foundId || -1;
+        }
+
+
+        function findSimilarNames(nonMatch, periodStudents, foundIds, meetingId) {
+            let courseName = courseFromZoomId(meetingId);
+            let periodName = periodFromZoomId(meetingId);
+            let foundMatches = [];
+
+            for (let j = 0; j < nonMatch.length; j++) {
+
+                let name = nonMatch[j][0];
+
+                let foundStudent = {};
+                let maxSimilarity = 0;
+
+                for (let i = 0; i < periodStudents.length; i++) {
+
+                    // Skip students what were already found
+                    if (foundIds.indexOf(periodStudents[i].id) === -1) {
+
+                        // removing casing for student names
+                        let studentName = periodStudents[i].first + ' ' + periodStudents[i].last;
+                        name = name.toLowerCase();
+
+                        let currentSimilarity = textSimilarity(studentName.toLowerCase(), name);
+                        if (currentSimilarity > maxSimilarity) {
+                            maxSimilarity = currentSimilarity;
+                            foundStudent = {
+                                'id': periodStudents[i].id,
+                                'name': studentName,
+                                'duration': nonMatch[j][2],
+                                'course': courseName,
+                                'nonMatchIndex': j
+                            }
+                        }
+                    }
+                }
+
+                if (maxSimilarity > 0.8) {
+                    foundMatches.push(foundStudent.nonMatchIndex);
+                    zoomData.push(foundStudent);
+                }
+            }
+
+            nonMatch.forEach((e, i) => {
+                if (foundMatches.indexOf(i) === -1) {
+                    if ($('#zoom-non-match').innerHTML === '') {
+                        $('#zoom-non-match').style.display = 'block';
+                        $('#zoom-non-match').innerHTML = '<b>Unable to find matches for:</b><br><br>';
+                    }
+
+                    $('#zoom-non-match').innerHTML += courseName + ', Period ' + periodName + ': ' + e[0] + ' (' + e[2] + ' minutes)<br>';
+                }
+            });
+        }
+
+        // Text similarity function
+        // Source: https://medium.com/@sumn2u/string-similarity-comparision-in-js-with-examples-4bae35f13968
+        function textSimilarity(s1, s2) {
+            var m = 0;
+
+            // Exit early if either are empty.
+            if (s1.length === 0 || s2.length === 0) {
+                return 0;
+            }
+
+            // Exit early if they're an exact match.
+            if (s1 === s2) {
+                return 1;
+            }
+
+            var range = (Math.floor(Math.max(s1.length, s2.length) / 2)) - 1,
+                s1Matches = new Array(s1.length),
+                s2Matches = new Array(s2.length);
+
+            for (i = 0; i < s1.length; i++) {
+                var low = (i >= range) ? i - range : 0,
+                    high = (i + range <= s2.length) ? (i + range) : (s2.length - 1);
+
+                for (j = low; j <= high; j++) {
+                    if (s1Matches[i] !== true && s2Matches[j] !== true && s1[i] === s2[j]) {
+                        ++m;
+                        s1Matches[i] = s2Matches[j] = true;
+                        break;
+                    }
+                }
+            }
+
+            // Exit early if no matches were found.
+            if (m === 0) {
+                return 0;
+            }
+
+            // Count the transpositions.
+            var k = n_trans = 0;
+
+            for (i = 0; i < s1.length; i++) {
+                if (s1Matches[i] === true) {
+                    for (j = k; j < s2.length; j++) {
+                        if (s2Matches[j] === true) {
+                            k = j + 1;
+                            break;
+                        }
+                    }
+
+                    if (s1[i] !== s2[j]) {
+                        ++n_trans;
+                    }
+                }
+            }
+
+            var weight = (m / s1.length + m / s2.length + (m - (n_trans / 2)) / m) / 3,
+                l = 0,
+                p = 0.1;
+
+            if (weight > 0.7) {
+                while (s1[l] === s2[l] && l < 4) {
+                    ++l;
+                }
+
+                weight = weight + l * p * (1 - weight);
+            }
+
+            return weight;
+        }
 
     </script>
 
