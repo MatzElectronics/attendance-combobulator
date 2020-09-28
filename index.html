@@ -505,9 +505,18 @@ Copyright: 2020, all rights reserved
                 let timeLen = 0;
                 let timeLast = 0;
                 let tempData = dataRow.split('|');
+                                
+                // find the time (it may vary under weird circumstances)
+                let k = 4;
+                for (k = 4; k < tempData.length; k++) {
+                    if (tempData[k] && tempData[k].match(/[0-9]:[0-9]{2}$/)) {
+                        console.log(k, tempData[k]);
+                        break;
+                    }
+                }
 
-                if (tempData[6]) {
-                    let tempTime = tempData[6].split(':');
+                if (tempData[k]) {
+                    let tempTime = tempData[k].split(':');
                     tempTime[0] = parseInt(tempTime[0]);
                     tempTime[1] = parseInt(tempTime[1]);
                     if (tempTime.length === 3) {
@@ -517,12 +526,12 @@ Copyright: 2020, all rights reserved
                         timeLen = tempTime[0] * 60 + tempTime[1];
                     }
                 }
-                if (!isNaN(timeLen) && withinHours(tempData[4] || 0, CANVAS_ACTIVITY_WINDOW)) {
+                if (!isNaN(timeLen) && withinHours(tempData[k - 2] || 0, CANVAS_ACTIVITY_WINDOW)) {
                     canvasData.push({
                         'id': tempData[0],
                         'name': studentName,
                         'duration': Math.round(timeLen / 60),
-                        'last_access': tempData[5],
+                        'last_access': tempData[k - 1],
                         'course': $('#canvas-course').value
                     });
 
