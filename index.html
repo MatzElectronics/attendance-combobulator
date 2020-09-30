@@ -192,6 +192,11 @@ Copyright: 2020, all rights reserved
             display: none;
         }
 
+        span.canvas-absent-data {
+            font-size: 13px;
+            font-style: italic;
+        }
+
     </style>
 </head>
 
@@ -384,6 +389,7 @@ Copyright: 2020, all rights reserved
 
         window.studentList = JSON.parse(localStorage.getItem("EDGEAC-studentList")) || [];
         window.canvasData = [];
+        window.canvasAbsentData = {};
         window.zoomData = [];
 
         window.canvasDataLastUpdateTimeout = null;
@@ -492,8 +498,19 @@ Copyright: 2020, all rights reserved
             return (!isNaN(timeDifference) && timeDifference !== 0 && timeDifference < hourCount * 60 * 60 * 1000);
         }
 
+        function daysAgo(timeString) {
+            let timeDifference = null;
+            if (typeof(timeString) === 'string') {
+                timeDifference = Date.now() - Date.parse(timeString);
+            } else {
+                timeDifference = Date.now - timeString;
+            }
+            return Math.round(timeDifference / 24 / 360000) / 10;
+        }
+
         function getCanvasStudents(canvasRawData) {
             canvasRawData = canvasRawData.replace(/[\n\t]+/g, '|')
+                .replace(/at ([0-9]{1,2})([ap])m/g, 'at $1:00$2m')
                 .replace(/\|([0-9]{6}\|)/g, '\n$1')
                 .replace(/([0-9]+) at ([0-9:]+)([ap]+m)\|/g, (m, p1, p2, p3) => {
                     return `${p1} ${(new Date()).getYear() + 1900} ${p2} ${p3}|${p2}${p3}|`;
@@ -505,12 +522,11 @@ Copyright: 2020, all rights reserved
                 let timeLen = 0;
                 let timeLast = 0;
                 let tempData = dataRow.split('|');
-                                
+
                 // find the time (it may vary under weird circumstances)
                 let k = 4;
                 for (k = 4; k < tempData.length; k++) {
                     if (tempData[k] && tempData[k].match(/[0-9]:[0-9]{2}$/)) {
-                        console.log(k, tempData[k]);
                         break;
                     }
                 }
@@ -526,6 +542,7 @@ Copyright: 2020, all rights reserved
                         timeLen = tempTime[0] * 60 + tempTime[1];
                     }
                 }
+
                 if (!isNaN(timeLen) && withinHours(tempData[k - 2] || 0, CANVAS_ACTIVITY_WINDOW)) {
                     canvasData.push({
                         'id': tempData[0],
@@ -539,11 +556,29 @@ Copyright: 2020, all rights reserved
                     if (canvasDataLastUpdateTimeout) {
                         clearTimeout(canvasDataLastUpdateTimeout);
                     }
+
                     canvasDataLastUpdateTimeout = setTimeout(() => {
                         canvasData = [];
+                        canvasAbsentData = {};
                         $('#canvas-count').innerText = '0 records';
                     }, 1000 * 3600 * DATA_VALID_WINDOW);
+
+                } else if (!isNaN(timeLen)) {
+                    // record their cumulative time spent in course to display in the report
+                    let cumulativeTimeInCanvas = Math.round(timeLen / 60);
+                    let recordKey = tempData[0] + $('#canvas-course').value;
+                    if (cumulativeTimeInCanvas === 0) {
+                        canvasAbsentData[recordKey] = '<span class="canvas-absent-data">never</span>'
+                    } else {
+                        canvasAbsentData[recordKey] = `<span class="canvas-absent-data">${cumulativeTimeInCanvas}`;
+                        let daysAgoLastAccessed = daysAgo(tempData[k - 2]);
+                        if (!isNaN(daysAgoLastAccessed)) {
+                            canvasAbsentData[recordKey] += ` - ${daysAgoLastAccessed} days ago`;
+                        }
+                        canvasAbsentData[recordKey] += `</span>`;
+                    }
                 }
+
                 studentName = tempData[tempData.length - 1];
             });
 
@@ -858,10 +893,13 @@ Copyright: 2020, all rights reserved
                 let attendedListIndex = attendedList.indexOf(studentList[i].id);
                 if (showDetails) {
                     if (studentList[i].period === period) {
+                        absentTime = canvasAbsentData[studentList[i].id + courseFromPeriod(studentList[i].period)];
                         attended.push(
                             studentList[i].last + ', ' + studentList[i].first + '|' +
                             (attendedListIndex === -1 ? 'absent' : '&nbsp;') + '|' +
-                            (attendedListIndex === -1 ? '&nbsp;|&nbsp;' : participationData[attendedListIndex].canvasDuration + '|' + participationData[attendedListIndex].zoomDuration)
+                            (attendedListIndex === -1 ?
+                                (absentTime ? absentTime : '&nbsp;') +
+                                '|&nbsp;' : participationData[attendedListIndex].canvasDuration + '|' + participationData[attendedListIndex].zoomDuration)
                         );
                     }
                 } else {
