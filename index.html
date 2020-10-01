@@ -295,6 +295,24 @@ Copyright: 2020, all rights reserved
                 <td><input id="zoom-id-8" type="text" /></td>
                 <td><input id="canvas-link-8" type="text" size="25" /></td>
             </tr>
+            <tr>
+                <td><input id="period-9" type="text" size="4" /></td>
+                <td><input id="course-9" type="text" size="12" /></td>
+                <td><input id="zoom-id-9" type="text" /></td>
+                <td><input id="canvas-link-9" type="text" size="25" /></td>
+            </tr>
+            <tr>
+                <td><input id="period-10" type="text" size="4" /></td>
+                <td><input id="course-10" type="text" size="12" /></td>
+                <td><input id="zoom-id-10" type="text" /></td>
+                <td><input id="canvas-link-10" type="text" size="25" /></td>
+            </tr>
+            <tr>
+                <td><input id="period-11" type="text" size="4" /></td>
+                <td><input id="course-11" type="text" size="12" /></td>
+                <td><input id="zoom-id-11" type="text" /></td>
+                <td><input id="canvas-link-11" type="text" size="25" /></td>
+            </tr>
         </table>
         <button class="button-css" onclick="saveSettings();">Save Settings</button>
         <br>
@@ -837,7 +855,7 @@ Copyright: 2020, all rights reserved
         function saveSettings() {
             settings = [];
 
-            for (let i = 0; i < 9; i++) {
+            for (let i = 0; i < 12; i++) {
                 let tempPeriod = $('#period-' + i).value.trim();
                 if (tempPeriod && tempPeriod !== '') {
                     settings[i] = {
@@ -871,7 +889,7 @@ Copyright: 2020, all rights reserved
         function populateSettings() {
             window.settings = JSON.parse(localStorage.getItem("EDGEAC-settings")) || [];
             if (settings && settings.length > 0) {
-                for (let i = 0; i < 9; i++) {
+                for (let i = 0; i < 12; i++) {
                     $('#period-' + i).value = (settings[i] && settings[i].period ? settings[i].period : '');
                     $('#course-' + i).value = (settings[i] && settings[i].course ? settings[i].course : '');
                     $('#zoom-id-' + i).value = (settings[i] && settings[i].zoomId ? settings[i].zoomId : '');
