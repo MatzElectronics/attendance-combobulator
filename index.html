@@ -297,6 +297,18 @@ Copyright: 2020, all rights reserved
             </tr>
         </table>
         <button class="button-css" onclick="saveSettings();">Save Settings</button>
+        <br>
+        <hr>
+        <button class="button-css" onclick="downloadSettings();">Download Settings and Student Lists as File</button>
+        <br>
+        <label for="settings-file-selector" class="button-css">
+            Choose File
+            <input type="file" id="settings-file-selector">
+        </label>
+        <div id="settings-file-selection-list"></div>
+        <button class="button-css" onclick="restoreSettings();">Restore Settings and Student Lists from File</button>
+
+
     </div>
     <div id="synergy" class="panel">
         <h2>Class (Synergy) entry:</h2>
@@ -364,7 +376,6 @@ Copyright: 2020, all rights reserved
             <input type="file" id="file-selector" multiple>
         </label>
         <div id="file-selection-list"></div>
-        <!--<textarea id="zoomStr" wrap="off" cols="30" rows="5"></textarea><br>-->
         <button id="get-zoom-data" class="button-css" onclick="getZoomStudents()">Import Zoom data</button>
         <br>
         <hr><br>
@@ -427,6 +438,65 @@ Copyright: 2020, all rights reserved
                 $('#zoom-report-link').innerHTML = `<a href="https://zoom.us/account/my/report?from=${dateString}&to=${dateString}" target="_blank">Today's Zoom Reports</a> (must be logged in to Zoom)`;
             }
 
+        }
+
+        function downloadSettings() {
+            let userData = {
+                settings: settings,
+                studentList: studentList
+            };
+            let anchorElement = document.createElement('a');
+            anchorElement.setAttribute(
+                'href', 'data:text/plain;charset=utf-8,' +
+                encodeURIComponent(JSON.stringify(userData))
+            );
+            anchorElement.setAttribute('download', 'ac_settings.json');
+
+            anchorElement.style.display = 'none';
+            document.body.appendChild(anchorElement);
+
+            anchorElement.click();
+
+            document.body.removeChild(anchorElement);
+        }
+        
+        function restoreSettings() {
+            const fileSelector = document.getElementById('settings-file-selector');
+            let failCount = 0;
+
+            if (fileSelector.files[0]) {
+                if (fileSelector.files[0]) {
+                    var reader = new FileReader();
+
+                    reader.onload = (e) => {
+                        let tempDataString = e.target.result;
+                        if (tempDataString) {
+                            let tempData = JSON.parse(tempDataString);
+                            studentList = tempData.studentList;
+                            settings = tempData.settings;
+                            
+                            localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
+                            localStorage.setItem('EDGEAC-settings', JSON.stringify(settings));
+                            
+                            populateSettings();
+                            getUniqueSections();
+                            
+                        } else {
+                            failCount++;
+                        }
+                    }
+
+                    reader.readAsText(fileSelector.files[0]);
+                }
+            }
+
+            setTimeout(() => {
+                fileSelector.value = '';
+                $('#settings-file-selection-list').innerHTML = '';
+                if (failCount > 0) {
+                    alert('Warning: Unable to load file.');
+                }
+            }, 2000);
         }
 
         function getZoomStudents() {
@@ -961,6 +1031,11 @@ Copyright: 2020, all rights reserved
             for (let i = 0; i < fileList.length; i++) {
                 $('#file-selection-list').innerHTML += fileList[i].name + '<br>';
             }
+        });
+        
+        $('#settings-file-selector').addEventListener("change", function() {
+            $('#settings-file-selection-list').innerHTML = '';
+            $('#settings-file-selection-list').innerHTML += $('#settings-file-selector').files[0].name + '<br>';
         });
 
         $('#synergy-course').addEventListener('change', () => {
