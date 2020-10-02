@@ -520,6 +520,7 @@ Copyright: 2020, all rights reserved
         function getZoomStudents() {
             const fileSelector = document.getElementById('file-selector');
             let failCount = 0;
+            let failData = [];
 
             if (fileSelector.files) {
                 for (let i = 0; i < fileSelector.files.length; i++) {
@@ -528,8 +529,10 @@ Copyright: 2020, all rights reserved
 
                         reader.onload = (e) => {
                             let tempList = e.target.result;
-                            if (!processZoomStudents(tempList)) {
+                            let processResult = processZoomStudents(tempList);
+                            if (!processResult || (processResult && processResult.success === false)) {
                                 failCount++;
+                                failData.push(processResult);
                             }
                         }
 
@@ -542,6 +545,7 @@ Copyright: 2020, all rights reserved
                 fileSelector.value = '';
                 $('#file-selection-list').innerHTML = '';
                 if (failCount > 0) {
+                    console.log(failData);
                     alert('Warning: Unable to load ' + failCount + ' files.');
                 }
             }, 2000);
@@ -597,11 +601,11 @@ Copyright: 2020, all rights reserved
         }
 
         function getCanvasStudents(canvasRawData) {
-            canvasRawData = canvasRawData.replace(/[\n\t]+/g, '|')
+            canvasRawData = canvasRawData.replace(/[\n\t]+/g, '\u275A')
                 .replace(/at ([0-9]{1,2})([ap])m/g, 'at $1:00$2m')
-                .replace(/\|([0-9]{6}\|)/g, '\n$1')
-                .replace(/([0-9]+) at ([0-9:]+)([ap]+m)\|/g, (m, p1, p2, p3) => {
-                    return `${p1} ${(new Date()).getYear() + 1900} ${p2} ${p3}|${p2}${p3}|`;
+                .replace(/\u275A([0-9]{6}\u275A)/g, '\n$1')
+                .replace(/([0-9]+) at ([0-9:]+)([ap]+m)\u275A/g, (m, p1, p2, p3) => {
+                    return `${p1} ${(new Date()).getYear() + 1900} ${p2} ${p3}\u275A${p2}${p3}\u275A`;
                 }).split('\n');
 
             let studentName = '';
@@ -609,7 +613,7 @@ Copyright: 2020, all rights reserved
             canvasRawData.forEach(dataRow => {
                 let timeLen = 0;
                 let timeLast = 0;
-                let tempData = dataRow.split('|');
+                let tempData = dataRow.split('\u275A');
 
                 // find the time (it may vary under weird circumstances)
                 let k = 4;
@@ -692,7 +696,7 @@ Copyright: 2020, all rights reserved
             zoomRawData = zoomRawData.replace(/\@salemkeizer.org,/g, ',').split('\n');
 
             for (i = 0; i < zoomRawData.length; i++) {
-                let tempData = zoomRawData[i].trim().replace(/,\h*(?![^,]+")/g, '|').split('|');
+                let tempData = zoomRawData[i].trim().replace(/,\h*(?![^,]+")/g, '\u275A').split('\u275A');
                 if (i === 0 && tempData[0] === 'Meeting ID') {
                     foundFileHeader = true;
                 }
@@ -755,7 +759,18 @@ Copyright: 2020, all rights reserved
 
             $('#zoom-count').innerText = zoomData.length + ' records';
 
-            return successFlag;
+            if (successFlag) {
+                return {success: true};
+            } else {
+                return {
+                    success: false,
+                    foundFileHeader: foundFileHeader,
+                    meetingId: meetingId,
+                    meetingCourse: meetingCourse,
+                    meetingDateTime: meetingDateTime,
+                    timeFlag: timeFlag
+                };
+            }
         }
 
         function removeClass(period) {
@@ -783,9 +798,15 @@ Copyright: 2020, all rights reserved
         }
 
         function courseFromPeriod(period) {
-            return settings.find((elem) => {
+            let settingsData = settings.find((elem) => {
                 return elem.period === period;
-            }).course;
+            });
+            if (settingsData && settingsData.course) {
+                return settingsData.course;
+            } else {
+                alert('There appears to be a problem with your settings or student list: no course found for period ' + period);
+                return settings[0].course;
+            }
         }
 
         function linkFromCourse(course) {
@@ -807,6 +828,15 @@ Copyright: 2020, all rights reserved
         }
 
         function loadClass(period, data) {
+            // first, verify that the class period is valid
+            if (period === 'none') {
+                period = $('#synergy-course').value;
+            }
+            if (period === 'none') {
+                alert('Please make sure a valid course/period is selected before loading student data.');
+                return;
+            }
+            
             // remove existing data for this class period
             if ($('#synergyStr').value !== '') {
                 removeClass(period);
@@ -904,14 +934,14 @@ Copyright: 2020, all rights reserved
             studentList.forEach((record) => {
                 if ($('#synergy-course').value !== 'none' && record.period === $('#synergy-course').value) {
                     tempStudentList.push(record.last + ', ' + record.first);
-                    tempMenuList.push(`${record.last}, ${record.first}</option>|<option value="${record.id}">`);
+                    tempMenuList.push(`${record.last}, ${record.first}</option>\u275A<option value="${record.id}">`);
                 }
             });
             tempStudentList.sort();
             tempMenuList.sort();
 
             for (let i = 0; i < tempMenuList.length; i++) {
-                let menuItem = tempMenuList[i].split('|');
+                let menuItem = tempMenuList[i].split('\u275A');
                 tempMenuList[i] = menuItem[1] + menuItem[0];
             }
 
@@ -983,11 +1013,11 @@ Copyright: 2020, all rights reserved
                     if (studentList[i].period === period) {
                         absentTime = canvasAbsentData[studentList[i].id + courseFromPeriod(studentList[i].period)];
                         attended.push(
-                            studentList[i].last + ', ' + studentList[i].first + '|' +
-                            (attendedListIndex === -1 ? 'absent' : '&nbsp;') + '|' +
+                            studentList[i].last + ', ' + studentList[i].first + '\u275A' +
+                            (attendedListIndex === -1 ? 'absent' : '&nbsp;') + '\u275A' +
                             (attendedListIndex === -1 ?
                                 (absentTime ? absentTime : '&nbsp;') +
-                                '|&nbsp;' : participationData[attendedListIndex].canvasDuration + '|' + participationData[attendedListIndex].zoomDuration)
+                                '\u275A&nbsp;' : participationData[attendedListIndex].canvasDuration + '\u275A' + participationData[attendedListIndex].zoomDuration)
                         );
                     }
                 } else {
@@ -1016,7 +1046,7 @@ Copyright: 2020, all rights reserved
                     '</tr>';
 
                 for (let i = 0; i < attended.length; i++) {
-                    let rowData = attended[i].split('|');
+                    let rowData = attended[i].split('\u275A');
                     let lightBkg = (rowData[1] === 'absent' ? '#fdd' : '#fff');
                     let darkBkg = (rowData[1] === 'absent' ? '#ecc' : '#eee');
                     let rowTag = '<tr style="background-color:' + (i % 2 === 0 ? lightBkg : darkBkg) + ';">';
