@@ -1060,8 +1060,7 @@ Copyright: 2020, all rights reserved
                     if (studentList[i].period === period) {
                         absentTime = canvasAbsentData[studentList[i].id + courseFromPeriod(studentList[i].period)];
                         attended.push(
-                            `<!--${studentList[i].id}, -->` +
-                            studentList[i].last + ', ' + studentList[i].first + '\u275A' +
+                            studentList[i].last + ', ' + studentList[i].first + `<!--,${studentList[i].id}-->` + '\u275A' +
                             (attendedListIndex === -1 ? 'absent' : '&nbsp;') + '\u275A' +
                             (attendedListIndex === -1 ?
                                 (absentTime ? absentTime : '&nbsp;') +
@@ -1070,7 +1069,7 @@ Copyright: 2020, all rights reserved
                     }
                 } else {
                     if (studentList[i].period === period && attendedListIndex === -1) {
-                        attended.push(`<!--${studentList[i].id}, -->${studentList[i].last}, ${studentList[i].first}`);
+                        attended.push(`${studentList[i].last}, ${studentList[i].first}<!--,${studentList[i].id}-->`);
                     }
                 }
             }
@@ -1114,7 +1113,7 @@ Copyright: 2020, all rights reserved
                     let canvasTimeData = rowData[2].replace(/ days ago/g, '').split(' - ');
                     let studentSplit = rowData[0].replace(/<!--/g, '').replace(/-->/g, '').split(',');
                     let dateString = getDateString().replace(/-/g,'/');
-                    csvOutput += `"${dateString}","${period}","${rowData[1].replace(/&nbsp;/g,'present')}","${studentSplit[0].trim()}","${studentSplit[1].trim()}","${studentSplit[2].trim()}","${canvasTimeData[0].replace(/<.*?>/g,'')}","${(canvasTimeData[1] || '').replace(/<.*?>/g,'')}","${rowData[3].replace(/&nbsp;/g,'')}"\n`;
+                    csvOutput += `"${dateString}","${period}","${rowData[1].replace(/&nbsp;/g,'present')}","${studentSplit[2].trim()}","${studentSplit[0].trim()}","${studentSplit[1].trim()}","${canvasTimeData[0].replace(/<.*?>/g,'')}","${(canvasTimeData[1] || '').replace(/<.*?>/g,'')}","${rowData[3].replace(/&nbsp;/g,'')}"\n`;
                 }
 
                 $('#attendanceResult').innerHTML += tableOutput + '</table>';
@@ -1306,4 +1305,5 @@ Copyright: 2020, all rights reserved
     </script>
 
 </body>
+
 </html>
