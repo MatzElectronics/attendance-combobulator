@@ -403,6 +403,7 @@ Copyright: 2020, all rights reserved
     <div id="reports" class="panel">
         <h2>Attendance report for period:</h2>
         <select id="report-period" class="select-css" onchange="showAttendance(this.value, true)"></select>
+        <button id="get-csv-data" class="button-css" onclick="downloadCSV()">Download as CSV</button>
         <br>
         <hr><br>
         <div id="attendanceResult"></div>
@@ -428,9 +429,18 @@ Copyright: 2020, all rights reserved
         window.periodNames = [];
 
         window.settings = [];
+        window.csvData = '';
 
         function $(e) {
             return document.querySelector(e);
+        }
+
+        function getDateString() {
+            let todayTime = new Date();
+            let month = todayTime.getMonth() + 1;
+            let day = todayTime.getDate();
+            let year = todayTime.getFullYear();
+            return month + "/" + day + "/" + year;
         }
 
         function navTo(panelId) {
@@ -448,14 +458,12 @@ Copyright: 2020, all rights reserved
             $('#' + panelId + '-tab').style.backgroundColor = '#337';
 
             if (panelId === 'zoom') {
-                let todayTime = new Date();
-                let month = todayTime.getMonth() + 1;
-                let day = todayTime.getDate();
-                let year = todayTime.getFullYear();
-                let dateString = month + "/" + day + "/" + year;
+                let dateString = getDateString();
                 $('#zoom-report-link').innerHTML = `<a href="https://zoom.us/account/my/report?from=${dateString}&to=${dateString}" target="_blank">Today's Zoom Reports</a> (must be logged in to Zoom)`;
             }
 
+            $('#attendanceResult').innerHTML = '';
+            csvData = '';
         }
 
         function downloadSettings() {
@@ -478,6 +486,27 @@ Copyright: 2020, all rights reserved
             document.body.removeChild(anchorElement);
         }
         
+        function downloadCSV() {
+            if (csvData.length < 10) {
+                alert('There is no data to download.  Please select a class period first');
+                return;
+            }
+            
+            let anchorElement = document.createElement('a');
+            anchorElement.setAttribute(
+                'href', 'data:text/plain;charset=utf-8,' +
+                encodeURIComponent(csvData)
+            );
+            anchorElement.setAttribute('download', 'attendance_' + getDateString().replace('/-/g','_') + '.csv');
+
+            anchorElement.style.display = 'none';
+            document.body.appendChild(anchorElement);
+
+            anchorElement.click();
+
+            document.body.removeChild(anchorElement);           
+        }
+
         function restoreSettings() {
             const fileSelector = document.getElementById('settings-file-selector');
             let failCount = 0;
@@ -492,13 +521,13 @@ Copyright: 2020, all rights reserved
                             let tempData = JSON.parse(tempDataString);
                             studentList = tempData.studentList;
                             settings = tempData.settings;
-                            
+
                             localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
                             localStorage.setItem('EDGEAC-settings', JSON.stringify(settings));
-                            
+
                             populateSettings();
                             getUniqueSections();
-                            
+
                         } else {
                             failCount++;
                         }
@@ -551,7 +580,7 @@ Copyright: 2020, all rights reserved
             }, 2000);
         }
 
-        function getUniqueSections() {
+        function getUniqueSections(periodsOnly) {
             for (let i = 0; i < studentList.length; i++) {
                 if (courseNames.indexOf(courseFromPeriod(studentList[i].period)) === -1) {
                     courseNames.push(courseFromPeriod(studentList[i].period));
@@ -564,6 +593,10 @@ Copyright: 2020, all rights reserved
             periodNames.sort();
             courseNames.sort();
 
+            if (periodsOnly) {
+                return periodNames;
+            }
+
             let topChoice = `<option value="none" selected>Choose a course</option>`;
             $('#canvas-course').innerHTML = topChoice;
             $('#report-period').innerHTML = topChoice;
@@ -575,6 +608,7 @@ Copyright: 2020, all rights reserved
             for (let i = 0; i < periodNames.length; i++) {
                 $('#report-period').innerHTML += `<option value="${periodNames[i]}">${periodNames[i]} - ${courseFromPeriod(periodNames[i])}</option>`;
             }
+            $('#report-period').innerHTML += `<option value="all" selected>All Periods</option>`
             for (let i = 0; i < settings.length; i++) {
                 $('#synergy-course').innerHTML += `<option value="${settings[i].period}">${settings[i].period} - ${settings[i].course}</option>`;
             }
@@ -760,7 +794,9 @@ Copyright: 2020, all rights reserved
             $('#zoom-count').innerText = zoomData.length + ' records';
 
             if (successFlag) {
-                return {success: true};
+                return {
+                    success: true
+                };
             } else {
                 return {
                     success: false,
@@ -836,7 +872,7 @@ Copyright: 2020, all rights reserved
                 alert('Please make sure a valid course/period is selected before loading student data.');
                 return;
             }
-            
+
             // remove existing data for this class period
             if ($('#synergyStr').value !== '') {
                 removeClass(period);
@@ -950,13 +986,24 @@ Copyright: 2020, all rights reserved
             $('#delete-student-menu').innerHTML = '<option value="none">Choose a student</option>' + tempMenuList.join('\n');
         }
 
-        function showAttendance(period, showDetails) {
+        function showAttendance(period, showDetails, callNextPeriod) {
+
+            let showingAll = (callNextPeriod || period === 'all' ? true : false);
+            let periodList = getUniqueSections(true);
 
             if (period === 'none') {
                 return;
+            } else if (period === 'all') {
+                period = periodList[0];
             }
 
-            $('#attendanceResult').innerHTML = '';
+            if (!callNextPeriod) {
+                $('#attendanceResult').innerHTML = '';
+                csvData = '';
+            } else {
+                $('#attendanceResult').innerHTML += '<br><hr><br>';
+                csvData += '\n\n';
+            }
 
             let attendedList = [];
             let participationData = [];
@@ -975,7 +1022,7 @@ Copyright: 2020, all rights reserved
                     attendedList.push(canvasData[i].id);
                     participationData.push({
                         canvasDuration: canvasData[i].duration,
-                        zoomDuration: '&nbsp;'
+                        zoomDuration: ''
                     });
                     foundCanvasData = true;
                 }
@@ -997,7 +1044,7 @@ Copyright: 2020, all rights reserved
                     if (listIndex === -1) {
                         attendedList.push(zoomData[i].id);
                         participationData.push({
-                            canvasDuration: '&nbsp;',
+                            canvasDuration: '',
                             zoomDuration: zoomData[i].duration
                         });
                     } else {
@@ -1013,6 +1060,7 @@ Copyright: 2020, all rights reserved
                     if (studentList[i].period === period) {
                         absentTime = canvasAbsentData[studentList[i].id + courseFromPeriod(studentList[i].period)];
                         attended.push(
+                            `<!--${studentList[i].id}, -->` +
                             studentList[i].last + ', ' + studentList[i].first + '\u275A' +
                             (attendedListIndex === -1 ? 'absent' : '&nbsp;') + '\u275A' +
                             (attendedListIndex === -1 ?
@@ -1022,7 +1070,7 @@ Copyright: 2020, all rights reserved
                     }
                 } else {
                     if (studentList[i].period === period && attendedListIndex === -1) {
-                        attended.push(`${studentList[i].last},  ${studentList[i].first}`);
+                        attended.push(`<!--${studentList[i].id}, -->${studentList[i].last}, ${studentList[i].first}`);
                     }
                 }
             }
@@ -1045,6 +1093,11 @@ Copyright: 2020, all rights reserved
                     (isZoom ? '<td>&nbsp;Minutes in Zoom (Today)&nbsp;</td>' : '') +
                     '</tr>';
 
+                let csvOutput = '';
+                if (!showingAll || period === periodList[0]) {
+                    csvOutput += '"Date","Period","Attendance","ID","Last Name","First Name","Minutes in Canvas (Cumulative)","Last Canvas Activity (Days ago)","Minutes in Zoom (Today)"\n';
+                }
+
                 for (let i = 0; i < attended.length; i++) {
                     let rowData = attended[i].split('\u275A');
                     let lightBkg = (rowData[1] === 'absent' ? '#fdd' : '#fff');
@@ -1057,10 +1110,24 @@ Copyright: 2020, all rights reserved
                         '</tr>';
 
                     tableOutput += rowText;
+
+                    let canvasTimeData = rowData[2].replace(/ days ago/g, '').split(' - ');
+                    let studentSplit = rowData[0].replace(/<!--/g, '').replace(/-->/g, '').split(',');
+                    let dateString = getDateString().replace(/-/g,'/');
+                    csvOutput += `"${dateString}","${period}","${rowData[1].replace(/&nbsp;/g,'present')}","${studentSplit[0].trim()}","${studentSplit[1].trim()}","${studentSplit[2].trim()}","${canvasTimeData[0].replace(/<.*?>/g,'')}","${(canvasTimeData[1] || '').replace(/<.*?>/g,'')}","${rowData[3].replace(/&nbsp;/g,'')}"\n`;
                 }
 
                 $('#attendanceResult').innerHTML += tableOutput + '</table>';
+                csvData += csvOutput;
             }
+
+            if (showingAll) {
+                let nextPeriodIndex = periodList.indexOf(period) + 1;
+                if (nextPeriodIndex < periodList.length) {
+                    showAttendance(periodList[nextPeriodIndex], true, true);
+                }
+            }
+
         }
 
 
@@ -1080,7 +1147,7 @@ Copyright: 2020, all rights reserved
                 $('#file-selection-list').innerHTML += fileList[i].name + '<br>';
             }
         });
-        
+
         $('#settings-file-selector').addEventListener("change", function() {
             $('#settings-file-selection-list').innerHTML = '';
             $('#settings-file-selection-list').innerHTML += $('#settings-file-selector').files[0].name + '<br>';
@@ -1239,5 +1306,4 @@ Copyright: 2020, all rights reserved
     </script>
 
 </body>
-
 </html>
