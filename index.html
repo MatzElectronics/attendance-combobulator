@@ -325,6 +325,8 @@ Copyright: 2020-2021, all rights reserved
         </label>
         <div id="settings-file-selection-list"></div>
         <button class="button-css" onclick="restoreSettings();">Restore Settings and Student Lists from File</button>
+        <br><br>
+        To clear the all settings and student lists, <a href="#" onclick="downloadBlankSettings();">click here to download a blank settings file</a>, and re-load it with the "Restore Settings and Student Lists" button above.
 
 
     </div>
@@ -476,9 +478,29 @@ Copyright: 2020-2021, all rights reserved
             let anchorElement = document.createElement('a');
             anchorElement.setAttribute(
                 'href', 'data:text/plain;charset=utf-8,' +
-                encodeURIComponent(JSON.stringify(userData))
+                encodeURIComponent(JSON.stringify(userData));
             );
             anchorElement.setAttribute('download', 'ac_settings.json');
+
+            anchorElement.style.display = 'none';
+            document.body.appendChild(anchorElement);
+
+            anchorElement.click();
+
+            document.body.removeChild(anchorElement);
+        }
+        
+        function downloadBlankSettings() {
+            let userData = {
+                settings: settings,
+                studentList: studentList
+            };
+            let anchorElement = document.createElement('a');
+            anchorElement.setAttribute(
+                'href', 'data:text/plain;charset=utf-8,' +
+                encodeURIComponent(JSON.stringify({"settings":[],"studentList":[]}));
+            );
+            anchorElement.setAttribute('download', 'ac_erase_all_settings.json');
 
             anchorElement.style.display = 'none';
             document.body.appendChild(anchorElement);
