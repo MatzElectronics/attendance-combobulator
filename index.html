@@ -326,7 +326,9 @@ Copyright: 2020-2021, all rights reserved
         <div id="settings-file-selection-list"></div>
         <button class="button-css" onclick="restoreSettings();">Restore Settings and Student Lists from File</button>
         <br><br>
-        To clear the all settings and student lists, <a href="#" onclick="downloadBlankSettings();">click here to download a blank settings file</a>, and re-load it with the "Restore Settings and Student Lists" button above.
+        To clear the all settings and student lists, <br>
+        <a href="#" onclick="downloadBlankSettings();">click here to download a blank settings file</a>, and re-load it with the <br>
+        "Restore Settings and Student Lists" button above.
 
 
     </div>
@@ -338,7 +340,9 @@ Copyright: 2020-2021, all rights reserved
             <tr>
                 <td>
                     <b>Whole class data:</b><br>
-                    <i>Loading students with this box will erase the previous class list for this section and re-load it. Use report STU401 as a TXT file from Synergy.</i><br>
+                    <i>Loading students with this box will erase <br>
+                    the previous class list for this section and re-load <br>
+                    it. Use report STU401 as a TXT file from Synergy.</i><br>
                     <textarea id="synergyStr" wrap="off" cols="30" rows="5"></textarea><br>
                     <button id="get-synergy-data" class="button-css" onclick="loadClass($('#synergy-course').value,$('#synergyStr').value)" disabled>Import Synergy data</button>
                 </td>
