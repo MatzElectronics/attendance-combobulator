@@ -884,7 +884,7 @@ Copyright: 2020-2021, all rights reserved
         function periodsFromCourse(course) {
             let periodsList = [];
             settings.forEach((s) => {
-                if (settings.course === course) {
+                if (s.course === course) {
                     periodsList.push(settings.period);
                 }
             });
