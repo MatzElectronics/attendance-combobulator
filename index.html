@@ -1,0 +1,1856 @@
+<html>
+<!--
+
+This software is for use by permission only.
+For inquiries or permission, please contact me at matt dot m dot matz at gmail dot com.
+Author: Matthew Matz (@MatzElectronics)
+Copyright: 2020-2021, all rights reserved
+
+-->
+<head>
+    <script>
+        const CHAT_INTERACTIONS_MINIMUM = 1;
+        const CHAT_WORDS_MINIMUM = 4;
+
+        const MAX_SECTIONS = 12;
+
+        const CANVAS_ACTIVITY_WINDOW = 25;
+        const ZOOM_ACTIVITY_WINDOW = 20;
+        const DATA_VALID_WINDOW = 18;
+    </script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            margin: 0;
+        }
+
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #777;
+        }
+
+        nav li {
+            float: left;
+            border-right: 1px solid #bbb;
+            background-color: #333;
+        }
+
+        nav li a {
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+
+        /* Change the link color to #111 (black) on hover */
+        nav li a:hover {
+            background-color: #559;
+        }
+
+        .panel {
+            padding: 20px;
+        }
+
+        table {
+            margin-top: 20px;
+        }
+
+        th {
+            font-weight: 700;
+        }
+
+        textarea {
+            padding: 0.25em;
+            border-radius: 0.5em;
+            background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+            border-color: #aaa;
+            box-shadow: 0 1px 0 1px rgba(0, 0, 0, .04);
+        }
+
+        input[type=text] {
+            display: block;
+            font-size: 16px;
+            font-weight: 700;
+            color: #444;
+            line-height: 1.3;
+            padding: .6em 1.4em .5em .8em;
+            border-radius: 0.5em;
+            background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+            border: 1px solid #aaa;
+            box-shadow: 0 1px 0 1px rgba(0, 0, 0, .04);
+        }
+
+        input[type=file] {
+            display: none;
+        }
+
+        .button-css {
+            width: fit-content;
+            display: block;
+            font-size: 16px;
+            font-weight: 700;
+            color: #444;
+            line-height: 1.3;
+            padding: .6em 1.4em .5em .8em;
+            margin: 15px 0 0 0;
+            border: 1px solid #aaa;
+            box-shadow: 0 1px 0 1px rgba(0, 0, 0, .04);
+            border-radius: .5em;
+            -moz-appearance: none;
+            -webkit-appearance: none;
+            appearance: none;
+            background-color: #fff;
+            background-image: linear-gradient(to bottom, #eee 0%, #ddd 100%);
+            background-repeat: repeat;
+        }
+
+        .button-css:hover {
+            filter: brightness(0.9);
+        }
+
+        .button-css:active {
+            filter: brightness(0.8);
+        }
+
+        .button-css:disabled {
+            filter: brightness(1.1);
+            color: #bbb;
+            border-color: #ccc;
+        }
+
+        /* class applies to select element itself, not a wrapper element */
+        .select-css {
+            display: block;
+            font-size: 16px;
+            font-weight: 700;
+            color: #444;
+            line-height: 1.3;
+            padding: .6em 1.4em .5em .8em;
+            margin: 15px 0 0 0;
+            border: 1px solid #aaa;
+            box-shadow: 0 1px 0 1px rgba(0, 0, 0, .04);
+            border-radius: .5em;
+            -moz-appearance: none;
+            -webkit-appearance: none;
+            appearance: none;
+            background-color: #fff;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'),
+                linear-gradient(to bottom, #eee 0%, #ddd 100%);
+            background-repeat: no-repeat, repeat;
+            /* arrow icon position (1em from the right, 50% vertical) , then gradient position*/
+            background-position: right .7em top 50%, 0 0;
+            /* icon size, then gradient */
+            background-size: .65em auto, 100%;
+        }
+
+        /* Hide arrow icon in IE browsers */
+        .select-css::-ms-expand {
+            display: none;
+        }
+
+        .select-css:hover {
+            border-color: #888;
+        }
+
+        .select-css:focus {
+            border-color: #aaa;
+            box-shadow: 0 0 1px 3px rgba(59, 153, 252, .7);
+            box-shadow: 0 0 0 3px -moz-mac-focusring;
+            color: #222;
+            outline: none;
+        }
+
+        .select-css option {
+            font-weight: normal;
+        }
+
+        footer {
+            position: sticky;
+            top: 100vh;
+            padding: 10px 20px;
+            background-color: #bbb;
+            color: #555;
+            font-size: 11px;
+        }
+
+        footer a {
+            color: #444;
+            text-decoration: none;
+        }
+
+        footer b,
+        footer b a {
+            color: #111;
+        }
+
+        td {
+            vertical-align: top;
+        }
+
+        #zoom-non-match {
+            padding: 10px;
+            background: #ffa;
+            display: none;
+        }
+
+        span.canvas-absent-data {
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        #show-synergy-list>i {
+            font-size: 12px;
+            color: #999;
+            margin-left: 17px;
+        }
+
+        #zoom-directory-name {
+            vertical-align: bottom;
+            font-style: italic;
+            color: #999;
+        }
+
+        .warning {
+            background-color: #ffc;
+        }
+
+        .chat-text-display {
+            padding: 5px;
+            border: 1px solid #000;
+            font-size: 13px;
+            background: #ddf;
+        }
+    </style>
+    <script>
+        function promisifyRequest(request) {
+            return new Promise((resolve, reject) => {
+                request.oncomplete = request.onsuccess = () => resolve(request.result);
+                request.onabort = request.onerror = () => reject(request.error);
+            });
+        }
+
+        function createStore(dbName, storeName) {
+            const request = indexedDB.open(dbName);
+            request.onupgradeneeded = () => request.result.createObjectStore(storeName);
+            const dbp = promisifyRequest(request);
+            return (txMode, callback) => dbp.then((db) => callback(db.transaction(storeName, txMode).objectStore(
+                storeName)));
+        }
+        let defaultGetStoreFunc;
+
+        function defaultGetStore() {
+            if (!defaultGetStoreFunc) {
+                defaultGetStoreFunc = createStore('keyval-store', 'keyval');
+            }
+            return defaultGetStoreFunc;
+        }
+        /**
+         * Get a value by its key.
+         * @param key
+         * @param customStore Method to get a custom store. Use with caution (see the docs).
+         */
+        function get(key, customStore = defaultGetStore()) {
+            return customStore('readonly', (store) => promisifyRequest(store.get(key)));
+        }
+        /**
+         * Set a value with a key.
+         * @param key
+         * @param value
+         * @param customStore Method to get a custom store. Use with caution (see the docs).
+         */
+        function set(key, value, customStore = defaultGetStore()) {
+            return customStore('readwrite', (store) => {
+                store.put(value, key);
+                return promisifyRequest(store.transaction);
+            });
+        }
+    </script>
+</head>
+
+<body>
+    <nav>
+        <ul>
+            <li id="setup-tab"><a onclick="navTo('setup');">Setup</a></li>
+            <li id="synergy-tab"><a onclick="navTo('synergy');">Manage Class Lists</a></li>
+            <li id="canvas-tab" style="display: none;"><a onclick="navTo('canvas');">Load Canvas Reports</a></li>
+            <li id="zoom-tab"><a onclick="navTo('zoom');">Load Zoom Reports</a></li>
+            <li id="reports-tab"><a onclick="navTo('reports');">Get Reports</a></li>
+        </ul>
+    </nav>
+    <div id="setup" class="panel">
+        <h2>Setup:</h2>
+        Instructions:
+        <ul>
+            <li>
+                It is not necessary to fill out all of the blanks below.
+            </li>
+            <li>
+                Class periods should be numeric, should each be unique, and should match the periods shown in Synergy.
+            </li>
+            <li>
+                For class periods that have the same course subject (that have the same parent course for Canvas), be
+                sure that the course subject is spelled the same in each entry!
+            </li>
+            <li>
+                Zoom meeting IDs are 11-digit numbers. Spaces are not necessary and they will be deleted automatically.
+            </li>
+            <li>
+                The Canvas "People" link should link to your parent course in Canvas and it can be used in multiple
+                boxes below.
+            </li>
+            <li>
+                Settings and student lists are stored on your computer in the same place as "cookies" are. <b>If you
+                    clear your browser's cache/cookies, it will erase your settings and student lists!</b>
+            </li>
+        </ul>
+        <br>
+        <table>
+            <tr>
+                <td>
+                    <button class="button-css" onclick="getZoomFolderHandle();">Choose Zoom Folder</button>
+                </td>
+                <td id="zoom-directory-name"></td>
+            </tr>
+        </table>
+        <br>
+        <table>
+            <tr>
+                <th>Period</th>
+                <th>Course</th>
+                <th>Zoom Recurring Meeting ID</th>
+                <th style="display: none;">Canvas Course "People" URL</th>
+            </tr>
+            <script>
+                for (let k = 0; k < MAX_SECTIONS; k++) {
+                    document.write(
+                        `<tr><td><input id="period-${k}" type="text" size="4" /></td>` +
+                        `<td><input id="course-${k}" type="text" size="12" /></td>` +
+                        `<td><input id="zoom-id-${k}" type="text" /></td>` +
+                        `<td style="display: none;"><input id="canvas-link-${k}" type="text" size="25" /></td></tr>`
+                    )
+                }
+            </script>
+        </table>
+        <button class="button-css" onclick="saveSettings();">Save Settings</button>
+        <br>
+        <hr>
+        <button class="button-css" onclick="downloadSettings();">Download Settings and Student Lists as File</button>
+        <br>
+        <label for="settings-file-selector" class="button-css">
+            Choose File
+            <input type="file" id="settings-file-selector">
+        </label>
+        <div id="settings-file-selection-list"></div>
+        <button class="button-css" onclick="restoreSettings();">Restore Settings and Student Lists from File</button>
+        <br><br>
+        To clear the all settings and student lists, <br>
+        <a href="#" onclick="downloadBlankSettings();">click here to download a blank settings file</a>, and re-load it
+        with the <br>"Restore Settings and Student Lists" button above.
+    </div>
+    <div id="synergy" class="panel">
+        <table class="sub-page">
+            <tr>
+                <td>
+                    <h2>Class (Synergy) entry:</h2>
+                    <select id="synergy-course" class="select-css"></select>
+                    <i id="synergy-record-count"></i><br>
+                    <br><br>
+                    <b>Whole class data:</b><br>
+                    <i>Loading students with this box will erase <br>
+                        the previous class list for this section and re-load <br>
+                        it. Use report STU401 as a TXT file from Synergy.</i><br>
+                    <textarea id="synergyStr" wrap="off" cols="30" rows="5"></textarea><br>
+                    <button id="get-synergy-data" class="button-css"
+                        onclick="loadClass($('#synergy-course').value,$('#synergyStr').value)" disabled>Import Synergy
+                        data</button>
+                </td>
+                <td>&nbsp;&nbsp;&nbsp;</td>
+                <td>
+                    <b>Single student entry:</b><br>
+                    <table>
+                        <tr>
+                            <td>Student ID</td>
+                            <td>Last Name</td>
+                            <td>First Name</td>
+                        </tr>
+                        <tr>
+                            <td><input id="add-id" type="text" size="8" /></td>
+                            <td><input id="add-last" type="text" size="18" /></td>
+                            <td><input id="add-first" type="text" size="12" /></td>
+                        </tr>
+                    </table>
+                    <button id="add-synergy-data" class="button-css"
+                        onclick="loadClass($('#synergy-course').value, `${$('#add-id').value}\t${$('#add-first').value}\t${$('#add-last').value}`)"
+                        disabled>Add Student</button>
+
+                    <br><br>
+
+                    <b>Remove a single student:</b><br>
+                    <select id="delete-student-menu" class="select-css">
+                        <option value="none">Choose a student</option>
+                    </select>
+                    <button id="remove-student" class="button-css"
+                        onclick="removeStudent($('#delete-student-menu').value)" disabled>Remove Student</button>
+                </td>
+            </tr>
+        </table>
+        <br>
+        <hr>
+        <div id="show-synergy-list"></div>
+    </div>
+
+    <div id="canvas" class="panel">
+        <h2>Canvas Report Entry:</h2>
+        <i id="canvas-count">0 records</i><br>
+        <select id="canvas-course" class="select-css"></select><br>
+        <div id="canvas-link-wrapper" style="display: none;">
+            <a id="canvas-course-link" href="#" target="_blank">Canvas course link</a>&nbsp;
+            (Must be logged into Canvas)
+        </div>
+        <br>Data:<br>
+        <textarea id="canvasStr" wrap="off" cols="30" rows="5"></textarea><br>
+        <button id="get-canvas-data" class="button-css" onclick="getCanvasStudents($('#canvasStr').value)"
+            disabled>Import Canvas data</button>
+    </div>
+
+    <div id="zoom" class="panel">
+        <h2>Zoom report entry:</h2>
+        <!--<p>Note: If a student is <b>not</b> logged in using their school account, this will attempt to identify the
+            student by their <i>username</i>, as long as their username is a close match to their <i>"Firstname
+                Lastname"</i>. Capitalization does not matter. Usernames to dissimilar be matched will be listed below.
+        </p>-->
+        <p><b>Note:</b> Students <b>must</b> be logged in using their school accounts to be picked up by this tool.</p>
+        <br>
+        <div id="zoom-report-link"></div>
+        <i id="zoom-count">0 records</i><br>
+        <label for="file-selector" class="button-css">
+            Choose Files
+            <input type="file" id="file-selector" multiple>
+        </label>
+        <div id="file-selection-list"></div>
+        <button id="get-zoom-chats" class="button-css" onclick="navTo('zoom')">Allow Reading Chat Files</button>
+        <button id="get-zoom-data" class="button-css" onclick="getZoomStudents()" disabled>Import Zoom data</button>
+        <br>
+        <hr><br>
+        <div id="zoom-non-match"></div>
+    </div>
+
+    <div id="reports" class="panel">
+        <h2>Attendance report for period:</h2>
+        <div style="display: none;" class="warning" id="zoom-folder-warning">The <b>Zoom Folder</b> is not set! Please
+            go to the Setup Tab and set the <b>Zoom Folder</b>.</div>
+        <select id="report-period" class="select-css" onchange="showChatAnalysis(this.value)"></select>
+        <button id="get-csv-data" class="button-css" onclick="downloadCSV()">Download as CSV</button>
+        <br>
+        <hr><br>
+        <div id="attendanceResult"></div>
+    </div>
+
+    <footer>
+        <b>Attendance <a href="https://www.definition-of.com/Combobulator" target="_blank">Combobulator</a> v2.0</b> - <a
+            href="https://github.com/MatzElectronics" target="_blank">Matthew Matz</a> &copy;2020-<script>document.write((new Date).getFullYear())</script>. All rights
+        reserved.
+    </footer>
+    <script>
+        window.studentList = JSON.parse(localStorage.getItem("EDGEAC-studentList")) || [];
+        window.prefereneces = {
+            zoomFolderHandle: null
+        };
+        async function setFolderHandle() {
+            prefereneces.zoomFolderHandle = await get("EDGEAC-preferences");
+            $('#zoom-directory-name').innerText = prefereneces.zoomFolderHandle.kind + ': ' + prefereneces
+                .zoomFolderHandle.name;
+        }
+        setFolderHandle();
+        window.canvasData = [];
+        window.canvasAbsentData = {};
+        window.zoomData = [];
+        window.zoomMeetingDetails = {};
+        window.zoomChatResults = {};
+
+        window.canvasDataLastUpdateTimeout = null;
+        window.zoomDataLastUpdateTimeout = null;
+
+        window.courseNames = [];
+        window.periodNames = [];
+        window.staffZoomHandles = [];
+
+        window.settings = [];
+        window.csvData = '';
+        window.csvDate = getDateString(true);
+
+        window.displayedRow = null;
+
+        function $(e) {
+            return document.querySelector(e);
+        }
+
+        function getDateString(fileNameStyle, forDate) {
+            let todayTime = forDate ? forDate : new Date();
+            let month = todayTime.getMonth() + 1;
+            let day = todayTime.getDate();
+            let year = todayTime.getFullYear();
+            if (fileNameStyle) {
+                return year + "-" + (month.toString().length < 2 ? '0' : '') + month + "-" + (day.toString().length <
+                    2 ? '0' : '') + day;
+            } else {
+                return month + "/" + day + "/" + year;
+            }
+        }
+
+        function navTo(panelId) {
+            let panels = document.querySelectorAll('.panel');
+            let tabs = document.querySelectorAll('nav li');
+
+            for (let i = 0; i < panels.length; i++) {
+                panels[i].style.display = 'none';
+            }
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].style.backgroundColor = '#333';
+            }
+
+            $('#' + panelId).style.display = 'block';
+            $('#' + panelId + '-tab').style.backgroundColor = '#337';
+
+            if (panelId === 'zoom') {
+                let dateString = getDateString();
+                if (prefereneces.zoomFolderHandle) {
+                    verifyPermission(prefereneces.zoomFolderHandle);
+                }
+                $('#zoom-report-link').innerHTML =
+                    `<a href="https://zoom.us/account/my/report?from=${dateString}&to=${dateString}" target="_blank">Today's Zoom Reports</a> (must be logged in to Zoom)`;
+            }
+
+            $('#attendanceResult').innerHTML = '';
+            csvData = '';
+
+            if (panelId === 'reports') {
+                if (prefereneces.zoomFolderHandle) {
+                    $('#zoom-folder-warning').style.display = 'none';
+                } else {
+                    $('#zoom-folder-warning').style.display = 'block';
+                }
+
+                showChatAnalysis($('#report-period').value);
+            }
+        }
+
+        function downloadSettings() {
+            let userData = {
+                settings: settings,
+                studentList: studentList
+            };
+            let anchorElement = document.createElement('a');
+            anchorElement.setAttribute(
+                'href', 'data:text/plain;charset=utf-8,' +
+                encodeURIComponent(JSON.stringify(userData))
+            );
+            anchorElement.setAttribute('download', 'ac_settings.json');
+
+            anchorElement.style.display = 'none';
+            document.body.appendChild(anchorElement);
+
+            anchorElement.click();
+
+            document.body.removeChild(anchorElement);
+        }
+
+        function downloadBlankSettings() {
+            let userData = {
+                settings: settings,
+                studentList: studentList
+            };
+            let anchorElement = document.createElement('a');
+            anchorElement.setAttribute(
+                'href', 'data:text/plain;charset=utf-8,' +
+                encodeURIComponent(JSON.stringify({
+                    "settings": [],
+                    "studentList": []
+                }))
+            );
+            anchorElement.setAttribute('download', 'ac_erase_all_settings.json');
+
+            anchorElement.style.display = 'none';
+            document.body.appendChild(anchorElement);
+
+            anchorElement.click();
+
+            document.body.removeChild(anchorElement);
+        }
+
+        function downloadCSV() {
+            if (csvData.length < 10) {
+                alert('There is no data to download.  Please select a class period first');
+                return;
+            }
+
+            let anchorElement = document.createElement('a');
+            anchorElement.setAttribute(
+                'href', 'data:text/plain;charset=utf-8,' +
+                encodeURIComponent(csvData)
+            );
+
+            anchorElement.setAttribute('download', 'attendance_' + csvDate.replace(/-/g, '_') + '.csv');
+
+            anchorElement.style.display = 'none';
+            document.body.appendChild(anchorElement);
+
+            anchorElement.click();
+
+            document.body.removeChild(anchorElement);
+        }
+
+        function restoreSettings() {
+            const fileSelector = document.getElementById('settings-file-selector');
+            let failCount = 0;
+
+            if (fileSelector.files[0]) {
+                if (fileSelector.files[0]) {
+                    var reader = new FileReader();
+
+                    reader.onload = (e) => {
+                        let tempDataString = e.target.result;
+                        if (tempDataString) {
+                            let tempData = JSON.parse(tempDataString);
+                            studentList = tempData.studentList;
+                            settings = tempData.settings;
+
+                            localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
+                            localStorage.setItem('EDGEAC-settings', JSON.stringify(settings));
+                            set('EDGEAC-prefereneces', prefereneces.zoomFolderHandle);
+
+                            populateSettings();
+                            getUniqueSections();
+
+                        } else {
+                            failCount++;
+                        }
+                    }
+
+                    reader.readAsText(fileSelector.files[0]);
+                }
+            }
+
+            setTimeout(() => {
+                fileSelector.value = '';
+                $('#settings-file-selection-list').innerHTML = '';
+                if (failCount > 0) {
+                    alert('Warning: Unable to load file.');
+                }
+            }, 2000);
+        }
+
+        function getZoomStudents() {
+            const fileSelector = document.getElementById('file-selector');
+            let failCount = 0;
+            let failData = [];
+
+            if (fileSelector.files) {
+                for (let i = 0; i < fileSelector.files.length; i++) {
+                    if (fileSelector.files[i]) {
+                        var reader = new FileReader();
+
+                        reader.onload = (e) => {
+                            let tempList = e.target.result;
+                            let processResult = processZoomStudents(tempList);
+                            if (!processResult || (processResult && processResult.success === false)) {
+                                failCount++;
+                                failData.push(processResult);
+                            } else {
+                                zoomMeetingDetails[processResult.meetingId] = {
+                                    meetingDateTime: processResult.meetingDateTime,
+                                    meetingDuration: processResult.meetingDuration
+                                }
+                            }
+                        }
+
+                        reader.readAsText(fileSelector.files[i]);
+                    }
+                }
+            }
+
+            setTimeout(() => {
+                fileSelector.value = '';
+                $('#file-selection-list').innerHTML = '';
+                if (failCount > 0) {
+                    console.log(failData);
+                    alert('Warning: Unable to load ' + failCount + ' files.');
+                }
+            }, 2000);
+
+            setTimeout(() => {
+
+            }, 3000);
+        }
+
+        function getUniqueSections(periodsOnly) {
+            for (let i = 0; i < studentList.length; i++) {
+                if (courseNames.indexOf(courseFromPeriod(studentList[i].period)) === -1) {
+                    courseNames.push(courseFromPeriod(studentList[i].period));
+                }
+                if (periodNames.indexOf(studentList[i].period) === -1) {
+                    periodNames.push(studentList[i].period);
+                }
+            }
+
+            periodNames.sort();
+            courseNames.sort();
+
+            if (periodsOnly) {
+                return periodNames;
+            }
+
+            let topChoice = `<option value="none" selected>Choose a course</option>`;
+            $('#canvas-course').innerHTML = topChoice;
+            $('#report-period').innerHTML = topChoice;
+            $('#synergy-course').innerHTML = topChoice;
+
+            for (let i = 0; i < courseNames.length; i++) {
+                $('#canvas-course').innerHTML += `<option value="${courseNames[i]}">${courseNames[i]}</option>`;
+            }
+            for (let i = 0; i < periodNames.length; i++) {
+                $('#report-period').innerHTML +=
+                    `<option value="${periodNames[i]}">${periodNames[i]} - ${courseFromPeriod(periodNames[i])}</option>`;
+            }
+            $('#report-period').innerHTML += `<option value="all" selected>All Periods</option>`
+            for (let i = 0; i < settings.length; i++) {
+                $('#synergy-course').innerHTML +=
+                    `<option value="${settings[i].period}">${settings[i].period} - ${settings[i].course}</option>`;
+            }
+        }
+
+        function withinHours(timeString, hourCount) {
+            let timeDifference = null;
+            if (typeof (timeString) === 'string') {
+                timeDifference = Date.now() - Date.parse(timeString);
+            } else {
+                timeDifference = Date.now - timeString;
+            }
+            return (!isNaN(timeDifference) && timeDifference !== 0 && timeDifference < hourCount * 60 * 60 * 1000);
+        }
+
+        function daysAgo(timeString) {
+            let timeDifference = null;
+            if (typeof (timeString) === 'string') {
+                timeDifference = Date.now() - Date.parse(timeString);
+            } else {
+                timeDifference = Date.now - timeString;
+            }
+            return Math.round(timeDifference / 24 / 360000) / 10;
+        }
+
+        function getCanvasStudents(canvasRawData) {
+            canvasRawData = canvasRawData.replace(/[\n\t]+/g, '\u275A')
+                .replace(/at ([0-9]{1,2})([ap])m/g, 'at $1:00$2m')
+                .replace(/\u275A([0-9]{6}\u275A)/g, '\n$1')
+                .replace(/([0-9]+) at ([0-9:]+)([ap]+m)\u275A/g, (m, p1, p2, p3) => {
+                    return `${p1} ${(new Date()).getYear() + 1900} ${p2} ${p3}\u275A${p2}${p3}\u275A`;
+                }).split('\n');
+
+            let studentName = '';
+
+            canvasRawData.forEach(dataRow => {
+                let timeLen = 0;
+                let timeLast = 0;
+                let tempData = dataRow.split('\u275A');
+
+                // find the time (it may vary under weird circumstances)
+                let k = 4;
+                for (k = 4; k < tempData.length; k++) {
+                    if (tempData[k] && tempData[k].match(/[0-9]:[0-9]{2}$/)) {
+                        break;
+                    }
+                }
+
+                if (tempData[k]) {
+                    let tempTime = tempData[k].split(':');
+                    tempTime[0] = parseInt(tempTime[0]);
+                    tempTime[1] = parseInt(tempTime[1]);
+                    if (tempTime.length === 3) {
+                        tempTime[2] = parseInt(tempTime[2]);
+                        timeLen = tempTime[0] * 60 * 60 + tempTime[1] * 60 + tempTime[2];
+                    } else {
+                        timeLen = tempTime[0] * 60 + tempTime[1];
+                    }
+                }
+
+                if (!isNaN(timeLen) && withinHours(tempData[k - 2] || 0, CANVAS_ACTIVITY_WINDOW)) {
+                    canvasData.push({
+                        'id': tempData[0],
+                        'name': studentName,
+                        'duration': Math.round(timeLen / 60),
+                        'last_access': tempData[k - 1],
+                        'course': $('#canvas-course').value
+                    });
+
+                    // Erase the canvas data if it's been too long.
+                    if (canvasDataLastUpdateTimeout) {
+                        clearTimeout(canvasDataLastUpdateTimeout);
+                    }
+
+                    canvasDataLastUpdateTimeout = setTimeout(() => {
+                        canvasData = [];
+                        canvasAbsentData = {};
+                        $('#canvas-count').innerText = '0 records';
+                    }, 1000 * 3600 * DATA_VALID_WINDOW);
+
+                } else if (!isNaN(timeLen)) {
+                    // record their cumulative time spent in course to display in the report
+                    let cumulativeTimeInCanvas = Math.round(timeLen / 60);
+                    let recordKey = tempData[0] + $('#canvas-course').value;
+                    if (cumulativeTimeInCanvas === 0) {
+                        canvasAbsentData[recordKey] = '<span class="canvas-absent-data">never</span>'
+                    } else {
+                        canvasAbsentData[recordKey] =
+                            `<span class="canvas-absent-data">${cumulativeTimeInCanvas}`;
+                        let daysAgoLastAccessed = daysAgo(tempData[k - 2]);
+                        if (!isNaN(daysAgoLastAccessed)) {
+                            canvasAbsentData[recordKey] += ` - ${daysAgoLastAccessed} days ago`;
+                        }
+                        canvasAbsentData[recordKey] += `</span>`;
+                    }
+                }
+
+                studentName = tempData[tempData.length - 1];
+            });
+
+            $('#canvas-count').innerText = canvasData.length + ' records';
+            $('#canvasStr').value = '';
+            $('#canvas-link-wrapper').style.display = 'none';
+            $('#canvas-course').value = 'none';
+
+        }
+
+        function processZoomStudents(zoomRawData, callback) {
+            let foundFileHeader = false;
+            let meetingId = null;
+            let meetingCourse = '';
+            let meetingDateTime = null;
+            let meetingDuration = null;
+            let successFlag = false;
+            let timeFlag = false;
+
+            let periodStudents = [];
+            let foundIds = [];
+            let nonMatch = [];
+
+            let indexList = [];
+            let maxStudentTime = [];
+
+            // get student ID from email by removing the domain
+            zoomRawData = zoomRawData.replace(/\@salemkeizer.org,/g, ',').split('\n');
+
+            for (i = 0; i < zoomRawData.length; i++) {
+
+                // split up a CSV file and remove any double-quotes
+                let tempData = zoomRawData[i].trim().replace(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/g, '\u275A').split('\u275A');
+                if (i === 0 && tempData[0] === 'Meeting ID') {
+                    foundFileHeader = true;
+                }
+                if (foundFileHeader && i === 1) {
+
+                    meetingId = tempData[0].trim();
+                    meetingCourse = courseFromZoomId(meetingId);
+                    meetingDateTime = tempData[2];
+                    meetingDuration = tempData[5];
+                    timeFlag = withinHours(tempData[2], ZOOM_ACTIVITY_WINDOW);
+
+                    timeFlag = true;
+
+                    maxStudentTime = [];
+
+                    //let currentPeriod = periodFromZoomId(meetingId);
+                    let periodsList = periodsFromCourse(meetingCourse);
+
+                    periodStudents = studentList.filter((e) => {
+                        //return e.period === currentPeriod
+
+                        // Grab all students with that cousre, regardless of period
+                        return (periodsList.indexOf(e.period) > -1);
+                    });
+                }
+
+                if (timeFlag && tempData[1] && tempData[1].indexOf('@') === -1 && tempData[1].length === 6) {
+
+                    successFlag = true;
+                    foundIds.push(tempData[1]);
+                    let tempStudentTime = parseInt(tempData[2] || '0');
+
+                    zoomData.push({
+                        'id': tempData[1],
+                        'name': tempData[0],
+                        'duration': tempStudentTime,
+                        'meetingLength': 30, // parseInt(meetingDuration),
+                        'course': meetingCourse,
+                        'meetingId': meetingId
+                    });
+
+                    indexList.push(zoomData.length - 1);
+                    maxStudentTime.push(tempStudentTime);
+
+
+                } else if (timeFlag && tempData[0].length > 0 && i > 3 && tempData[1].indexOf('k12.or.us') > -1) {
+
+                    staffZoomHandles.push(tempData[0]);
+
+                } else if (timeFlag && tempData[0].length > 0 && i > 3 && tempData[1].indexOf('k12.or.us') === -1) {
+
+                    let studentIndex = findStudentByName(tempData[0], periodStudents);
+
+                    if (studentIndex > -1) {
+                        let studentElement = periodStudents.splice(studentIndex, 1)[0];
+                        successFlag = true;
+                        zoomData.push({
+                            'id': studentElement.id,
+                            'name': tempData[0],
+                            'duration': parseInt(tempData[2]),
+                            'meetingLength': 30, // parseInt(meetingDuration),
+                            'course': meetingCourse,
+                            'meetingId': meetingId
+                        });
+
+                        indexList.push(zoomData.length - 1);
+                        maxStudentTime.push(tempStudentTime);
+
+                    } else {
+                        nonMatch.push(tempData);
+                    }
+                }
+            }
+
+            maxStudentTime = maxStudentTime.sort((x, y) => x - y);
+            let timeMedian = maxStudentTime[Math.floor(maxStudentTime.length / 2) + 1];
+
+            for (i = 0; i < indexList.length; i++) {
+                zoomData[indexList[i]].meetingLength = timeMedian;
+            }
+
+            // Set a timeout to erase the zoom data if it's been too long.
+            if (zoomDataLastUpdateTimeout) {
+                clearTimeout(zoomDataLastUpdateTimeout);
+            }
+
+            zoomDataLastUpdateTimeout = setTimeout(() => {
+                zoomData = [];
+                $('#zoom-count').innerText = '0 records';
+                $('#zoom-non-match').innerHTML = '';
+                $('#zoom-non-match').style.display = 'none';
+            }, 1000 * 3600 * DATA_VALID_WINDOW);
+
+
+            if (nonMatch.length > 0) {
+                findSimilarNames(nonMatch, periodStudents, foundIds, meetingId);
+            }
+
+            $('#zoom-count').innerText = zoomData.length + ' records';
+
+            if (successFlag) {
+                // begin adding names to students
+                setTimeout(addNamesToStudents, 0);
+
+                let tempDateTime = new Date(Date.parse(meetingDateTime));
+                csvDate = getDateString(true, tempDateTime);
+
+                getZoomChat(csvDate, meetingId, meetingDateTime, meetingDuration);
+
+                return {
+                    success: true
+                };
+            } else {
+                return {
+                    success: false,
+                    foundFileHeader: foundFileHeader,
+                    meetingId: meetingId,
+                    meetingCourse: meetingCourse,
+                    meetingDateTime: meetingDateTime,
+                    meetingDuration: meetingDuration,
+                    timeFlag: timeFlag
+                };
+            }
+        }
+
+        function addNamesToStudents() {
+            zoomData.forEach((zoomStudent) => {
+                studentList.forEach((student, i) => {
+                    if (student.id == zoomStudent.id) {
+                        studentList[i].zoomHandle = zoomStudent.name;
+                    }
+                });
+            });
+
+            // save the student list
+            localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
+        }
+
+        function removeClass(period) {
+            let tempStudentList = [];
+            for (let i = 0; i < studentList.length; i++) {
+                if (studentList[i].period !== period) {
+                    tempStudentList.push(studentList[i]);
+                }
+            }
+            studentList = tempStudentList;
+            tempStudentList = [];
+        }
+
+        function removeStudent(studentId) {
+            let studentIndex = studentList.findIndex((elem) => {
+                return elem.id === studentId
+            });
+
+            if (studentIndex > -1) {
+                studentList.splice(studentIndex, 1);
+            }
+
+            localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
+            populateStudentList();
+        }
+
+        function courseFromPeriod(period) {
+            let settingsData = settings.find((elem) => {
+                return elem.period === period;
+            });
+            if (settingsData && settingsData.course) {
+                return settingsData.course;
+            } else {
+                alert('There appears to be a problem with your settings or student list: no course found for period ' +
+                    period);
+                return settings[0].course;
+            }
+        }
+
+        function periodsFromCourse(course) {
+            let periodsList = [];
+            settings.forEach((s) => {
+                if (settings.course === course) {
+                    periodsList.push(settings.period);
+                }
+            });
+            return periodsList;
+        }
+
+        function linkFromCourse(course) {
+            return settings.find((elem) => {
+                return elem.course === course;
+            }).canvasLink;
+        }
+
+        function courseFromZoomId(zoomId) {
+            return settings.find((elem) => {
+                return elem.zoomId === zoomId;
+            }).course;
+        }
+
+        function periodFromZoomId(zoomId) {
+            return settings.find((elem) => {
+                return elem.zoomId === zoomId;
+            }).period;
+        }
+
+        function loadClass(period, data) {
+            // first, verify that the class period is valid
+            if (period === 'none') {
+                period = $('#synergy-course').value;
+            }
+            if (period === 'none') {
+                alert('Please make sure a valid course/period is selected before loading student data.');
+                return;
+            }
+
+            // remove existing data for this class period
+            if ($('#synergyStr').value !== '') {
+                removeClass(period);
+            } else {
+                let checkStudent = null;
+                for (let i = 0; i < studentList.length; i++) {
+                    if (studentList[i].period === period && studentList[i].id === data.split('\t')[0]) {
+                        checkStudent = studentList[i];
+                        break;
+                    }
+                }
+
+                if (checkStudent) {
+                    alert(checkStudent.first + ' ' + checkStudent.last + ' already has that ID in this period!');
+                    return;
+                }
+            }
+
+            $('#add-id').value = '';
+            $('#add-first').value = '';
+            $('#add-last').value = '';
+
+            // parse the new data and add it to the array
+            synergyRawData = data.split('\n');
+            let recordCount = 0;
+            synergyRawData.forEach(dataRow => {
+                tempData = dataRow.trim().split('\t');
+                if (tempData[0].length === 6) {
+                    studentList.push({
+                        'id': tempData[0],
+                        'first': tempData[tempData.length - 2],
+                        'last': tempData[tempData.length - 1],
+                        'period': period
+                    });
+                    recordCount++;
+                }
+            });
+
+            localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
+            getUniqueSections();
+            $('#synergyStr').value = '';
+            $('#synergy-record-count').innerText = recordCount + ' records imported/updated.'
+            populateStudentList();
+        }
+
+        function saveSettings() {
+            settings = [];
+
+            for (let i = 0; i < 12; i++) {
+                let tempPeriod = $('#period-' + i).value.trim();
+                if (tempPeriod && tempPeriod !== '') {
+                    settings[i] = {
+                        period: tempPeriod,
+                        course: $('#course-' + i).value.trim(),
+                        zoomId: $('#zoom-id-' + i).value.replace(/[^0-9]/g, ''),
+                        canvasLink: $('#canvas-link-' + i).value.trim()
+                    }
+                }
+            }
+
+            settings.sort((a, b) => {
+                const bandA = a.period.toUpperCase();
+                const bandB = b.period.toUpperCase();
+
+                let comparison = 0;
+                if (bandA > bandB) {
+                    comparison = 1;
+                } else if (bandA < bandB) {
+                    comparison = -1;
+                }
+                return comparison;
+            });
+
+            localStorage.setItem('EDGEAC-settings', JSON.stringify(settings));
+            set('EDGEAC-prefereneces', prefereneces.zoomFolderHandle);
+
+            populateSettings();
+            getUniqueSections();
+        }
+
+        async function verifyPermission(fileHandle) {
+            const options = {};
+            // Check if permission was already granted. If so, return true.
+            if ((await fileHandle.queryPermission({})) === 'granted') {
+                $('#get-zoom-data').disabled = false;
+                $('#get-zoom-chats').style.display = 'none';
+                return true;
+            }
+            // Request permission. If the user grants permission, return true.
+            if ((await fileHandle.requestPermission({})) === 'granted') {
+                $('#get-zoom-data').disabled = false;
+                $('#get-zoom-chats').style.display = 'none';
+                return true;
+            }
+            // The user didn't grant permission, so return false.
+            return false;
+        }
+
+        function populateSettings() {
+            window.settings = JSON.parse(localStorage.getItem("EDGEAC-settings")) || [];
+            if (settings && settings.length > 0) {
+                for (let i = 0; i < 12; i++) {
+                    $('#period-' + i).value = (settings[i] && settings[i].period ? settings[i].period : '');
+                    $('#course-' + i).value = (settings[i] && settings[i].course ? settings[i].course : '');
+                    $('#zoom-id-' + i).value = (settings[i] && settings[i].zoomId ? settings[i].zoomId : '');
+                    /*
+                    $('#canvas-link-' + i).value = (settings[i] && settings[i].canvasLink ? settings[i].canvasLink :
+                        '');
+                        */
+                }
+            }
+
+            if (prefereneces.zoomFolderHandle) {
+                verifyPermission(prefereneces.zoomFolderHandle);
+                $('#zoom-directory-name').innerText = prefereneces.zoomFolderHandle.kind + ': ' + prefereneces
+                    .zoomFolderHandle.name;
+            }
+        }
+
+        function populateStudentList() {
+            let tempStudentList = [];
+            let tempMenuList = [];
+            studentList.forEach((record) => {
+                if ($('#synergy-course').value !== 'none' && record.period === $('#synergy-course').value) {
+                    tempStudentList.push(record.last + ', ' + record.first + (record.zoomHandle ? ' <i>' +
+                        record.zoomHandle + '</i>' : ''));
+                    tempMenuList.push(
+                        `${record.last}, ${record.first}</option>\u275A<option value="${record.id}">`);
+                }
+            });
+            tempStudentList.sort();
+            tempMenuList.sort();
+
+            for (let i = 0; i < tempMenuList.length; i++) {
+                let menuItem = tempMenuList[i].split('\u275A');
+                tempMenuList[i] = menuItem[1] + menuItem[0];
+            }
+
+            $('#show-synergy-list').innerHTML = '<br><b>' + tempStudentList.length + ' Students:</b><br><br>' +
+                tempStudentList.join('<br>');
+
+            $('#delete-student-menu').innerHTML = '<option value="none">Choose a student</option>' + tempMenuList.join(
+                '\n');
+        }
+
+        /*
+        function showAttendance(period, showDetails, callNextPeriod) {
+
+            let showingAll = (callNextPeriod || period === 'all' ? true : false);
+            let periodList = getUniqueSections(true);
+
+            if (period === 'none') {
+                return;
+            } else if (period === 'all') {
+                period = periodList[0];
+            }
+
+            if (!callNextPeriod) {
+                $('#attendanceResult').innerHTML = '';
+                csvData = '';
+            } else {
+                $('#attendanceResult').innerHTML += '<br><hr><br>';
+                csvData += '\n\n';
+            }
+
+            let attendedList = [];
+            let participationData = [];
+            let attended = [];
+            let foundZoomData = false;
+            let foundCanvasData = false;
+
+            // find the course name
+            let courseName = courseFromPeriod(period);
+
+            $('#attendanceResult').innerHTML += '<b>' + courseName + ': Period ' + period + '</b><br><br>';
+
+            // get data from canvas
+            for (let i = 0; i < canvasData.length; i++) {
+                if (canvasData[i].course === courseName) {
+                    attendedList.push(canvasData[i].id);
+                    participationData.push({
+                        canvasDuration: canvasData[i].duration,
+                        zoomDuration: ''
+                    });
+                    foundCanvasData = true;
+                }
+            }
+
+            // is there a zoom ID for this period?
+            let isZoom = false;
+            let zoomIndex = settings.findIndex((elem) => {
+                return elem.period === period
+            });
+            if (settings[zoomIndex].zoomId.length === 11) {
+                isZoom = true;
+            }
+
+            // get data from zoom
+            for (let i = 0; i < zoomData.length; i++) {
+                if (zoomData[i].course === courseName) {
+                    let listIndex = attendedList.indexOf(zoomData[i].id);
+                    if (listIndex === -1) {
+                        attendedList.push(zoomData[i].id);
+                        participationData.push({
+                            canvasDuration: '',
+                            zoomDuration: zoomData[i].duration
+                        });
+                    } else {
+                        participationData[listIndex].zoomDuration = zoomData[i].duration;
+                    }
+                    foundZoomData = true;
+                }
+            }
+
+            for (let i = 0; i < studentList.length; i++) {
+                let attendedListIndex = attendedList.indexOf(studentList[i].id);
+                if (showDetails) {
+                    if (studentList[i].period === period) {
+                        absentTime = canvasAbsentData[studentList[i].id + courseFromPeriod(studentList[i].period)];
+                        attended.push(
+                            studentList[i].last + ', ' + studentList[i].first + `<!--,${studentList[i].id}-->` +
+                            '\u275A' +
+                            (attendedListIndex === -1 ? 'absent' : '&nbsp;') + '\u275A' +
+                            (attendedListIndex === -1 ?
+                                (absentTime ? absentTime : '&nbsp;') +
+                                '\u275A&nbsp;' : participationData[attendedListIndex].canvasDuration + '\u275A' +
+                                participationData[attendedListIndex].zoomDuration)
+                        );
+                    }
+                } else {
+                    if (studentList[i].period === period && attendedListIndex === -1) {
+                        attended.push(`${studentList[i].last}, ${studentList[i].first}<!--,${studentList[i].id}-->`);
+                    }
+                }
+            }
+            attended.sort();
+
+            if (!foundZoomData && isZoom) {
+                $('#attendanceResult').innerHTML +=
+                    '<i class="warning">WARNING: No Zoom Data was found for this class period.</i><br>';
+            }
+            if (!foundCanvasData) {
+                $('#attendanceResult').innerHTML +=
+                    '<i class="warning">WARNING: No Canvas Data was found for this class period.</i><br>';
+            }
+
+            if (!showDetails) {
+                $('#attendanceResult').innerHTML += (!foundCanvasData || !foundZoomData ? '<br>' : '') + attended.join(
+                    '<br>');
+            } else {
+                let tableOutput = '<table><tr style="font-weight:700;">' +
+                    '<td>&nbsp;Attendance&nbsp;</td>' +
+                    '<td style="text-align:center;">&nbsp;Student&nbsp;</td>' +
+                    '<td>&nbsp;Minutes in Canvas (Cumulative)&nbsp;</td>' +
+                    (isZoom ? '<td>&nbsp;Minutes in Zoom (Today)&nbsp;</td>' : '') +
+                    '</tr>';
+
+                let csvOutput = '';
+                if (!showingAll || period === periodList[0]) {
+
+                    csvOutput += '"Date",';
+                    csvOutput += '"Period",';
+                    csvOutput += '"Attendance",';
+                    csvOutput += '"ID",';
+                    csvOutput += '"Last Name",';
+                    csvOutput += '"First Name",';
+                    csvOutput += '"Minutes in Canvas (Cumulative)",';
+                    csvOutput += '"Last Canvas Activity (Days ago)",';
+                    csvOutput += '"Minutes in Zoom (Today)"\n';
+                }
+
+                for (let i = 0; i < attended.length; i++) {
+                    let rowData = attended[i].split('\u275A');
+                    let lightBkg = (rowData[1] === 'absent' ? '#fdd' : '#fff');
+                    let darkBkg = (rowData[1] === 'absent' ? '#ecc' : '#eee');
+                    let rowTag = '<tr style="background-color:' + (i % 2 === 0 ? lightBkg : darkBkg) + ';">';
+                    let rowText = rowTag + '<td>' + rowData[1] + '</td>' +
+                        '<td>' + rowData[0] + '</td>' + // Student name
+                        '<td style="text-align:center;">' + rowData[2] + '</td>' + // Canvas time
+                        (isZoom ? '<td style="text-align:center;">' + rowData[3] + '</td>' : '') + // Zoom time
+                        '</tr>';
+
+                    tableOutput += rowText;
+
+                    let canvasTimeData = rowData[2].replace(/ days ago/g, '').split(' - ');
+                    let studentSplit = rowData[0].replace(/<!--/g, '').replace(/-->/g, '').split(',');
+                    let dateString = getDateString().replace(/-/g, '/');
+
+                    csvOutput += `"${dateString}",`;
+                    csvOutput += `"${period}",`;
+                    csvOutput += `"${rowData[1].replace(/&nbsp;/g,'present')}",`;
+                    csvOutput += `"${studentSplit[2].trim()}",`;
+                    csvOutput += `"${studentSplit[0].trim()}",`;
+                    csvOutput += `"${studentSplit[1].trim()}",`;
+                    csvOutput += `"${canvasTimeData[0].replace(/<.*?>/g,'')}",`;
+                    csvOutput += `"${(canvasTimeData[1] || '').replace(/<.*?>/g,'')}",`;
+                    csvOutput += `"${rowData[3].replace(/&nbsp;/g,'')}"\n`;
+                }
+
+                $('#attendanceResult').innerHTML += tableOutput + '</table>';
+                csvData += csvOutput;
+            }
+
+            if (showingAll) {
+                let nextPeriodIndex = periodList.indexOf(period) + 1;
+                if (nextPeriodIndex < periodList.length) {
+                    showAttendance(periodList[nextPeriodIndex], true, true);
+                }
+            }
+
+        }
+        */
+
+        function insertAfter(newNode, existingNode) {
+            existingNode.parentNode.insertBefore(newNode, existingNode.nextSibling);
+        }
+
+        function showChatText(referringElement, chatTextString) {
+            let tableRow = referringElement.parentElement;
+
+            tableRow.insertAdjacentHTML('afterend', '<tr><td>&nbsp;</td><td class="chat-text-display" colspan="5">' +
+                chatTextString + '</td></tr>');
+
+            displayedRow = tableRow.nextElementSibling;
+        }
+
+        function hideChatText() {
+            displayedRow.remove();
+        }
+
+        function showChatAnalysis(period, callNextPeriod) {
+
+            let showingAll = (callNextPeriod || period === 'all' ? true : false);
+            let periodList = getUniqueSections(true);
+
+            if (period === 'none') {
+                return;
+            } else if (period === 'all') {
+                period = periodList[0];
+            }
+
+            if (!callNextPeriod) {
+                $('#attendanceResult').innerHTML = '';
+                csvData = '';
+            } else {
+                $('#attendanceResult').innerHTML += '<br><hr><br>';
+                csvData += '\n\n';
+            }
+
+            let attendedList = [];
+            let participationData = [];
+            let attended = [];
+            let foundZoomData = false;
+
+            // find the course name
+            let courseName = courseFromPeriod(period);
+
+            $('#attendanceResult').innerHTML += '<b>' + courseName + ': Period ' + period + '</b><br><br>';
+
+
+            // is there a zoom ID for this period?
+            let isZoom = false;
+            let zoomIndex = settings.findIndex((elem) => {
+                return elem.period === period
+            });
+            if (settings[zoomIndex].zoomId.length === 11) {
+                isZoom = true;
+            }
+
+            // get data from zoom
+            for (let i = 0; i < zoomData.length; i++) {
+                if (zoomData[i].course === courseName) {
+                    let listIndex = attendedList.indexOf(zoomData[i].id);
+                    if (listIndex === -1) {
+                        attendedList.push(zoomData[i].id);
+                        participationData.push([zoomData[i].duration, zoomData[i].meetingLength]);
+                    } else {
+                        participationData[listIndex] = [zoomData[i].duration, zoomData[i].meetingLength];
+                    }
+                    foundZoomData = true;
+                }
+            }
+
+            for (let i = 0; i < studentList.length; i++) {
+                let attendedListIndex = attendedList.indexOf(studentList[i].id);
+                let lastLength = 30;
+                if (studentList[i].period === period) {
+                    let zoomChatIndex = studentList[i].id + '-' + settings[zoomIndex].zoomId;
+                    let svgImage = '';
+
+                    if (attendedListIndex > -1) {
+                        let d = participationData[attendedListIndex][0];
+                        let l = participationData[attendedListIndex][1];
+
+                        if (l === 0) {
+                            l = lastLength;
+                        } else {
+                            lastLength = l;
+                        }
+
+                        function mapValue(in_val) {
+                            return (in_val - 1) * (30 - 6) / (40 - 1) + 6;
+                        }
+
+                        if (zoomChatResults[zoomChatIndex]) {
+                            svgImage = `<svg viewBox="0 0 150 20">`;
+                            svgImage +=
+                                `<rect fill="rgb(127,255,127)" stroke="none" x="0" y="10" width="${150 * d / l}" height="10"/>`;
+                            svgImage +=
+                                `<rect fill="rgb(255,127,127)" stroke="none" x="${150 * d / l}" y="10" width="150" height="10"/>`;
+
+                            zoomChatResults[zoomChatIndex].chat.forEach((zChat) => {
+                                svgImage +=
+                                    `<circle fill="rgba(0,0,0,0.35)" stroke="none" cx="${150 * zChat.time / l}" cy="10" r="${mapValue(zChat.count) / 2}"/>` //zChat.time;
+                            });
+
+                            svgImage += '</svg>';
+                        } else if (participationData[attendedListIndex][0] > 0) {
+                            svgImage = `<svg viewBox="0 0 150 20">`;
+                            svgImage +=
+                                `<rect fill="#ccc" stroke="none" x="0" y="10" width="${150 * d / l}" height="10"/>`;
+                            svgImage +=
+                                `<rect fill="rgb(255,127,127)" stroke="none" x="${150 * d / l}" y="10" width="150" height="10"/>`;
+                            svgImage += '</svg>';
+                        }
+                    }
+
+                    let attendMetric = false;
+                    let chatTextContents = '';
+                    if (zoomChatResults[zoomChatIndex]) {
+                        if (zoomChatResults[zoomChatIndex].chat.length >= CHAT_INTERACTIONS_MINIMUM && zoomChatResults[
+                                zoomChatIndex].words >= CHAT_WORDS_MINIMUM) {
+                            attendMetric = true;
+                        }
+
+                        zoomChatResults[zoomChatIndex].chat.forEach((c) => {
+                            chatTextContents += '&bull; ' + c.text + '<br>';
+                        });
+                    }
+                    attended.push(
+                        `${studentList[i].last}, ${studentList[i].first}<!--,${studentList[i].id}-->` +
+                        '\u275A' + (!attendMetric ? 'absent' : '') +
+                        '\u275A' + (participationData[attendedListIndex] ? participationData[attendedListIndex][0] :
+                            '') +
+                        '\u275A' + (zoomChatResults[zoomChatIndex] ? zoomChatResults[zoomChatIndex].chat.length :
+                            '') +
+                        '\u275A' + (zoomChatResults[zoomChatIndex] ? zoomChatResults[zoomChatIndex].words : '') +
+                        '\u275A' + svgImage +
+                        '\u275A' + chatTextContents
+                    );
+                }
+            }
+            attended.sort();
+
+            if (!foundZoomData && isZoom) {
+                $('#attendanceResult').innerHTML +=
+                    '<i class="warning">WARNING: No Zoom Data was found for this class period.</i><br>';
+            }
+
+            let tableOutput = '<table><tr style="font-weight:700;">' +
+                '<td>&nbsp;Attendance&nbsp;</td>' +
+                '<td style="text-align:center;">&nbsp;Student&nbsp;</td>' +
+                '<td>&nbsp;Minutes&nbsp;</td>' +
+                '<td>&nbsp;Interactions&nbsp;</td>' +
+                '<td>&nbsp;Words&nbsp;</td>' +
+                '<td style="width: 150px; text-align:center;">&nbsp;Summary&nbsp;</td>' +
+                '</tr>';
+
+            let csvOutput = '';
+
+            if (!showingAll || period === periodList[0]) {
+
+                csvOutput += '"Date",';
+                csvOutput += '"Period",';
+                csvOutput += '"Attendance",';
+                csvOutput += '"ID",';
+                csvOutput += '"Last Name",';
+                csvOutput += '"First Name",';
+                csvOutput += '"Minutes in Zoom",';
+                csvOutput += '"Chat Interactions",';
+                csvOutput += '"Chat Words"\n';
+            }
+
+            for (let i = 0; i < attended.length; i++) {
+                let rowData = attended[i].split('\u275A');
+                let lightBkg = (rowData[1] === 'absent' ? '#fdd' : '#fff');
+                let darkBkg = (rowData[1] === 'absent' ? '#ecc' : '#eee');
+                let rowTag = '<tr style="background-color:' + (i % 2 === 0 ? lightBkg : darkBkg) + ';">';
+                let rowText = rowTag +
+                    '<td style="text-align:center;">' + rowData[1] + '</td>' + // Present/Absent
+                    '<td>' + rowData[0] + '</td>' + // Student name
+                    '<td style="text-align:center;">' + rowData[2] + '</td>' + // Zoom duration
+                    '<td style="text-align:center;">' + rowData[3] + '</td>' + // Zoom chat interactions
+                    '<td style="text-align:center;">' + rowData[4] + '</td>' + // Zoom chat words
+                    '<td style="text-align:center; background-color: #fff;"' +
+                    (rowData[6] !== '' ? ' onmouseleave="hideChatText()" onmouseenter="showChatText(this, \'' + rowData[
+                        6].replace(/'/g, "\\'") + '\')"' : '') + // Zoom summary
+                    '>' + rowData[5] + '</td></tr>';
+
+                tableOutput += rowText;
+
+                let studentSplit = rowData[0].replace(/<!--/g, '').replace(/-->/g, '').split(',');
+                let dateString = getDateString().replace(/-/g, '/');
+
+                csvOutput += `"${dateString}",`;
+                csvOutput += `"${period}",`;
+                csvOutput += `"${rowData[1] === '' ? 'present' : 'absent'}",`;
+                csvOutput += `"${studentSplit[2].trim()}",`;
+                csvOutput += `"${studentSplit[0].trim()}",`;
+                csvOutput += `"${studentSplit[1].trim()}",`;
+                csvOutput += `"${rowData[2]}",`;
+                csvOutput += `"${rowData[3]}",`;
+                csvOutput += `"${rowData[4]}"\n`;
+            }
+
+            $('#attendanceResult').innerHTML += tableOutput + '</table>';
+            csvData += csvOutput;
+
+            if (showingAll) {
+                let nextPeriodIndex = periodList.indexOf(period) + 1;
+                if (nextPeriodIndex < periodList.length) {
+                    showChatAnalysis(periodList[nextPeriodIndex], true);
+                }
+            }
+        }
+
+        populateSettings();
+        getUniqueSections();
+
+        if (settings.length > 0) {
+            navTo('zoom');
+        } else {
+            navTo('setup');
+        }
+
+        $('#file-selector').addEventListener("change", function () {
+            $('#file-selection-list').innerHTML = '';
+            let fileList = $('#file-selector').files;
+            for (let i = 0; i < fileList.length; i++) {
+                $('#file-selection-list').innerHTML += fileList[i].name + '<br>';
+            }
+        });
+
+        $('#settings-file-selector').addEventListener("change", function () {
+            $('#settings-file-selection-list').innerHTML = '';
+            $('#settings-file-selection-list').innerHTML += $('#settings-file-selector').files[0].name + '<br>';
+        });
+
+        $('#synergy-course').addEventListener('change', () => {
+            $('#get-synergy-data').disabled = ($('#synergy-course').value === 'none' ? true : false);
+            $('#add-synergy-data').disabled = ($('#synergy-course').value === 'none' ? true : false);
+            $('#remove-student').disabled = ($('#synergy-course').value === 'none' ? true : false);
+            populateStudentList();
+        });
+
+        /*
+        $('#canvas-course').addEventListener('change', () => {
+            $('#canvas-link-wrapper').style.display = ($('#canvas-course').value === 'none' ? 'none' : 'block');
+            $('#canvas-course-link').setAttribute('href', $('#canvas-course').value === 'none' ? '#' :
+                linkFromCourse($('#canvas-course').value));
+            $('#get-canvas-data').disabled = ($('#canvas-course').value === 'none' ? true : false);
+        });
+        */
+
+        function findStudentByName(name, periodStudents) {
+            let foundId = null;
+
+            for (let i = 0; i < periodStudents.length; i++) {
+                if ((periodStudents[i].first + ' ' + periodStudents[i].last).toLowerCase() == name.toLowerCase()) {
+                    foundId = i;
+                }
+            }
+            return foundId || -1;
+        }
+
+        async function getZoomFolderHandle() {
+            prefereneces.zoomFolderHandle = await window.showDirectoryPicker({
+                startIn: 'documents'
+            });
+            set("EDGEAC-preferences", prefereneces.zoomFolderHandle);
+            populateSettings();
+        }
+
+        async function getZoomChat(dateString, zoomIdString, zoomMeetingStart, zoomMeetingDuration) {
+            let zoomChatText = [];
+
+            let zoomDate = zoomMeetingStart.split(' ')[0];
+            zoomMeetingStart = Date.parse(zoomMeetingStart);
+
+            let zoomFolderHandles = [];
+            for await (const entry of prefereneces.zoomFolderHandle) {
+                if (!dateString && zoomIdString && entry[0].indexOf(zoomIdString) > -1) {
+                    zoomFolderHandles.push(entry[1]);
+                } else if (dateString && !zoomIdString && entry[0].indexOf(dateString) > -1) {
+                    zoomFolderHandles.push(entry[1]);
+                } else if (!dateString && !zoomIdString) {
+                    zoomFolderHandles.push(entry[1]);
+                } else if (entry[0].indexOf(zoomIdString) > -1 && entry[0].indexOf(dateString) > -1) {
+                    zoomFolderHandles.push(entry[1]);
+                }
+            }
+
+            for (let i = 0; i < zoomFolderHandles.length; i++) {
+                for await (const entry of zoomFolderHandles[i]) {
+                    if (entry[0].indexOf('meeting_saved_chat') > -1) {
+                        const file = await entry[1].getFile();
+                        let contents = await file.text();
+                        contents = contents.trim().replace(/ From (.*?) to (.*?) : /g, '\u275A$1\u275A$2\u275A');
+                        zoomChatText = zoomChatText.concat(contents.split('\n'));
+                    }
+                }
+            }
+
+            zoomChatText.forEach((chatLine) => {
+                let tempData = chatLine.split('\u275A');
+                let tempStudentId = findStudentByZoomHandle(tempData[1]);
+
+                // TODO: add student name matching/guessing: idFromSimilarName(tempData[1])
+
+                if (staffZoomHandles.indexOf(tempData[1]) < 0 && tempStudentId) {
+                    let studentId = tempStudentId + (zoomIdString ? '-' + zoomIdString : '');
+                    if (!zoomChatResults[studentId]) {
+                        zoomChatResults[studentId] = {
+                            zoomHandle: tempData[1],
+                            words: 0,
+                            chat: []
+                        };
+                    }
+                    let tempLine = {
+
+                        time: Math.round((Date.parse(zoomDate + ' ' + tempData[0]) - zoomMeetingStart) /
+                            600) / 100,
+                        to: tempData[2],
+                        count: tempData[3].split(' ').length,
+                        text: tempData[3]
+                    }
+                    zoomChatResults[studentId].chat.push(tempLine);
+                    zoomChatResults[studentId].words += tempLine.count;
+                }
+            });
+            return zoomChatResults;
+        }
+
+        function findStudentByZoomHandle(zoomHandle) {
+            for (let i = 0; i < studentList.length; i++) {
+                if (zoomHandle === studentList[i].zoomHandle) {
+                    return studentList[i].id;
+                }
+            }
+            return null;
+        }
+
+        function findSimilarNames(nonMatch, periodStudents, foundIds, meetingId) {
+            let courseName = courseFromZoomId(meetingId);
+            let periodName = periodFromZoomId(meetingId);
+            let foundMatches = [];
+
+            for (let j = 0; j < nonMatch.length; j++) {
+
+                let name = nonMatch[j][0];
+
+                let foundStudent = {};
+                let maxSimilarity = 0;
+
+                for (let i = 0; i < periodStudents.length; i++) {
+
+                    // Skip students what were already found
+                    if (foundIds.indexOf(periodStudents[i].id) === -1) {
+
+                        // removing casing for student names
+                        let studentName = periodStudents[i].first + ' ' + periodStudents[i].last;
+
+                        let currentSimilarity = textSimilarity(studentName, name);
+                        if (currentSimilarity > maxSimilarity) {
+                            maxSimilarity = currentSimilarity;
+                            foundStudent = {
+                                'id': periodStudents[i].id,
+                                'name': studentName,
+                                'duration': nonMatch[j][2],
+                                'course': courseName,
+                                'nonMatchIndex': j
+                            }
+                        }
+                    }
+                }
+
+                if (maxSimilarity > 0.8) {
+                    foundMatches.push(foundStudent.nonMatchIndex);
+                    zoomData.push(foundStudent);
+                }
+            }
+
+            nonMatch.forEach((e, i) => {
+                if (foundMatches.indexOf(i) === -1) {
+                    if ($('#zoom-non-match').innerHTML === '') {
+                        $('#zoom-non-match').style.display = 'block';
+                        $('#zoom-non-match').innerHTML = '<b>Unable to find matches for:</b><br><br>';
+                    }
+
+                    $('#zoom-non-match').innerHTML += courseName + ', Period ' + periodName + ': ' + e[0] +
+                        ' (' + e[2] + ' minutes)<br>';
+                }
+            });
+        }
+
+        function idFromSimilarName(name) {
+            nameResults = [];
+            for (let i = 0; i < studentList.length; i++) {
+                let attempt1 = textSimilarity(name, studentList[i].first + ' ' + studentList[i].last);
+                let attempt2 = textSimilarity(name, studentList[i].last + ' ' + studentList[i].first);
+                nameResults.push((attempt1 > attempt2 ? attempt1 : attempt2).toFixed(5) + '|' + studentList[i]
+                .id); // + '|' + studentList[i].first + ' ' + studentList[i].last);
+            }
+            nameResults = nameResults.sort();
+            return nameResults[nameResults.length - 1].split('|')[1];
+        }
+
+        // Text similarity function
+        // Source: https://medium.com/@sumn2u/string-similarity-comparision-in-js-with-examples-4bae35f13968
+        function textSimilarity(s1, s2) {
+            s1 = s1.toLowerCase().replace(/[^\w ]/g, '').replace(/ +/g, ' ').trim();
+            s2 = s2.toLowerCase().replace(/[^\w ]/g, '').replace(/ +/g, ' ').trim();
+            var m = 0;
+
+            // Exit early if either are empty.
+            if (s1.length === 0 || s2.length === 0) {
+                return 0;
+            }
+            // Exit early if they're an exact match.
+            if (s1 === s2) {
+                return 1;
+            }
+
+            var range = (Math.floor(Math.max(s1.length, s2.length) / 2)) - 1,
+                s1Matches = new Array(s1.length),
+                s2Matches = new Array(s2.length);
+
+            for (i = 0; i < s1.length; i++) {
+                var low = (i >= range) ? i - range : 0,
+                    high = (i + range <= s2.length) ? (i + range) : (s2.length - 1);
+
+                for (j = low; j <= high; j++) {
+                    if (s1Matches[i] !== true && s2Matches[j] !== true && s1[i] === s2[j]) {
+                        ++m;
+                        s1Matches[i] = s2Matches[j] = true;
+                        break;
+                    }
+                }
+            }
+
+            // Exit early if no matches were found.
+            if (m === 0) {
+                return 0;
+            }
+
+            // Count the transpositions.
+            var k = n_trans = 0;
+            for (i = 0; i < s1.length; i++) {
+                if (s1Matches[i] === true) {
+                    for (j = k; j < s2.length; j++) {
+                        if (s2Matches[j] === true) {
+                            k = j + 1;
+                            break;
+                        }
+                    }
+
+                    if (s1[i] !== s2[j]) {
+                        ++n_trans;
+                    }
+                }
+            }
+            var weight = (m / s1.length + m / s2.length + (m - (n_trans / 2)) / m) / 3,
+                l = 0,
+                p = 0.1;
+
+            if (weight > 0.7) {
+                while (s1[l] === s2[l] && l < 4) {
+                    ++l;
+                }
+                weight = weight + l * p * (1 - weight);
+            }
+            return weight;
+        }
+    </script>
+
+</body>
+
+</html>
