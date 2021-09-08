@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <!--
 
@@ -489,6 +490,7 @@ Copyright: 2020-2021, all rights reserved
         window.csvDate = getDateString(true);
 
         window.displayedRow = null;
+        window.chatTextData = [];
 
         function $(e) {
             return document.querySelector(e);
@@ -846,6 +848,8 @@ Copyright: 2020-2021, all rights reserved
             let indexList = [];
             let maxStudentTime = [];
 
+            chatTextData = [];
+
             // get student ID from email by removing the domain
             zoomRawData = zoomRawData.replace(/\@salemkeizer.org,/g, ',').split('\n');
 
@@ -1022,9 +1026,9 @@ Copyright: 2020-2021, all rights reserved
             if (settingsData && settingsData.course) {
                 return settingsData.course;
             } else {
-                alert('There appears to be a problem with your settings or student list: no course found for period ' +
-                    period);
-                return settings[0].course;
+                //alert('There appears to be a problem with your settings or student list: no course found for period ' +
+                    //period);
+                return settings[0].course || 'none';
             }
         }
 
@@ -1383,13 +1387,23 @@ Copyright: 2020-2021, all rights reserved
             existingNode.parentNode.insertBefore(newNode, existingNode.nextSibling);
         }
 
-        function showChatText(referringElement, chatTextString) {
+        function showChatText(referringElement, chatTextDataIndex) {
+            let chatTextString = chatTextData[chatTextDataIndex];
             let tableRow = referringElement.parentElement;
 
-            tableRow.insertAdjacentHTML('afterend', '<tr><td>&nbsp;</td><td class="chat-text-display" colspan="5">' +
+            let currentWidth = parseInt(tableRow.parentElement.parentElement.style.width);
+            if (isNaN(currentWidth)) {
+                currentWidth = tableRow.offsetWidth;
+            }
+            
+            tableRow.insertAdjacentHTML('afterend', '<tr ><td>&nbsp;</td><td class="chat-text-display" colspan="5">' +
                 chatTextString + '</td></tr>');
 
             displayedRow = tableRow.nextElementSibling;
+
+            if (displayedRow.offsetWidth + 2 > currentWidth) {
+                tableRow.parentElement.parentElement.style.width = (displayedRow.offsetWidth + 2) + 'px';
+            }
         }
 
         function hideChatText() {
@@ -1502,7 +1516,7 @@ Copyright: 2020-2021, all rights reserved
                         }
 
                         zoomChatResults[zoomChatIndex].chat.forEach((c) => {
-                            chatTextContents += '&bull; ' + c.text + '<br>';
+                            chatTextContents += '&bull; ' + c.text.replace(/"/gi, '&quot;').replace(/>/gi, '&gt;').replace(/</gi, '&lt;').replace(/'/gi, '&apos;') + '<br>';
                         });
                     }
                     attended.push(
@@ -1554,15 +1568,19 @@ Copyright: 2020-2021, all rights reserved
                 let lightBkg = (rowData[1] === 'absent' ? '#fdd' : '#fff');
                 let darkBkg = (rowData[1] === 'absent' ? '#ecc' : '#eee');
                 let rowTag = '<tr style="background-color:' + (i % 2 === 0 ? lightBkg : darkBkg) + ';">';
+
+                let rowChatText = rowData[6].replace(/'/g, '');
+                chatTextData.push(rowChatText);
+                let chatTextDataIndex = chatTextData.length - 1;
+
                 let rowText = rowTag +
                     '<td style="text-align:center;">' + rowData[1] + '</td>' + // Present/Absent
-                    '<td>' + rowData[0] + '</td>' + // Student name
+                    '<td style="white-space:nowrap;">' + rowData[0] + '</td>' + // Student name
                     '<td style="text-align:center;">' + rowData[2] + '</td>' + // Zoom duration
                     '<td style="text-align:center;">' + rowData[3] + '</td>' + // Zoom chat interactions
                     '<td style="text-align:center;">' + rowData[4] + '</td>' + // Zoom chat words
                     '<td style="text-align:center; background-color: #fff;"' +
-                    (rowData[6] !== '' ? ' onmouseleave="hideChatText()" onmouseenter="showChatText(this, \'' + rowData[
-                        6].replace(/'/g, "\\'") + '\')"' : '') + // Zoom summary
+                    (rowData[6] !== '' ? ' onmouseleave="hideChatText()" onmouseenter="showChatText(this, ' + chatTextDataIndex + ')"' : '') + // Zoom summary
                     '>' + rowData[5] + '</td></tr>';
 
                 tableOutput += rowText;
@@ -1589,6 +1607,8 @@ Copyright: 2020-2021, all rights reserved
                 if (nextPeriodIndex < periodList.length) {
                     showChatAnalysis(periodList[nextPeriodIndex], true);
                 }
+            } else {
+                $('#attendanceResult').innerHTML += '<div style="height:600px;">&nbsp;</div>';
             }
         }
 
@@ -1673,6 +1693,10 @@ Copyright: 2020-2021, all rights reserved
                     if (entry[0].indexOf('meeting_saved_chat') > -1) {
                         const file = await entry[1].getFile();
                         let contents = await file.text();
+
+                        contents = contents.replace(/([0-9]+:[0-9]+:[0-9]+)\s*From(.*?to.*?):\s*(.*?)\n/gm, '$1 From$2 : $3\n');
+                        contents = contents.replace(/\(Direct Message\)/gi, '');
+
                         contents = contents.trim().replace(/ From (.*?) to (.*?) : /g, '\u275A$1\u275A$2\u275A');
                         zoomChatText = zoomChatText.concat(contents.split('\n'));
                     }
@@ -1681,7 +1705,7 @@ Copyright: 2020-2021, all rights reserved
 
             zoomChatText.forEach((chatLine) => {
                 let tempData = chatLine.split('\u275A');
-                let tempStudentId = findStudentByZoomHandle(tempData[1]);
+                let tempStudentId = findStudentByZoomHandle(tempData[1].trim());
 
                 // TODO: add student name matching/guessing: idFromSimilarName(tempData[1])
 
@@ -1689,18 +1713,18 @@ Copyright: 2020-2021, all rights reserved
                     let studentId = tempStudentId + (zoomIdString ? '-' + zoomIdString : '');
                     if (!zoomChatResults[studentId]) {
                         zoomChatResults[studentId] = {
-                            zoomHandle: tempData[1],
+                            zoomHandle: tempData[1].trim(),
                             words: 0,
                             chat: []
                         };
                     }
                     let tempLine = {
 
-                        time: Math.round((Date.parse(zoomDate + ' ' + tempData[0]) - zoomMeetingStart) /
+                        time: Math.round((Date.parse(zoomDate + ' ' + tempData[0].trim()) - zoomMeetingStart) /
                             600) / 100,
-                        to: tempData[2],
-                        count: tempData[3].split(' ').length,
-                        text: tempData[3]
+                        to: tempData[2].trim(),
+                        count: tempData[3].trim().split(' ').length,
+                        text: tempData[3].trim()
                     }
                     zoomChatResults[studentId].chat.push(tempLine);
                     zoomChatResults[studentId].words += tempLine.count;
@@ -1849,6 +1873,7 @@ Copyright: 2020-2021, all rights reserved
             }
             return weight;
         }
+
     </script>
 
 </body>
