@@ -1622,6 +1622,8 @@ Copyright: 2020-2021, all rights reserved
                 let nextPeriodIndex = periodList.indexOf(period) + 1;
                 if (nextPeriodIndex < periodList.length) {
                     showChatAnalysis(periodList[nextPeriodIndex], true);
+                } else {
+                    $('#attendanceResult').innerHTML += '<div style="height:600px;">&nbsp;</div>';
                 }
             } else {
                 $('#attendanceResult').innerHTML += '<div style="height:600px;">&nbsp;</div>';
