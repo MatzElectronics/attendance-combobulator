@@ -8,6 +8,7 @@ Author: Matthew Matz (@MatzElectronics)
 Copyright: 2020-2021, all rights reserved
 
 -->
+
 <head>
     <script>
         const CHAT_INTERACTIONS_MINIMUM = 1;
@@ -230,6 +231,46 @@ Copyright: 2020-2021, all rights reserved
             font-size: 13px;
             background: #ddf;
         }
+
+        /*the container must be positioned relative:*/
+        .autocomplete {
+            position: relative;
+            display: inline-block;
+        }
+
+
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid #d4d4d4;
+            border-bottom: none;
+            border-top: none;
+            z-index: 99;
+            /*position the autocomplete items to be the same width as the container:*/
+            top: 100%;
+            left: 0;
+            right: 0;
+            width: 600px;
+        }
+
+        .autocomplete-items div {
+            padding: 10px;
+            cursor: pointer;
+            background-color: #fff;
+            border-bottom: 1px solid #d4d4d4;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        /*when hovering an item:*/
+        .autocomplete-items div:hover {
+            background-color: #e9e9e9;
+        }
+
+        /*when navigating through the items using the arrow keys:*/
+        .autocomplete-active {
+            background-color: DodgerBlue !important;
+            color: #ffffff;
+        }
     </style>
     <script>
         function promisifyRequest(request) {
@@ -283,6 +324,7 @@ Copyright: 2020-2021, all rights reserved
             <li id="setup-tab"><a onclick="navTo('setup');">Setup</a></li>
             <li id="synergy-tab"><a onclick="navTo('synergy');">Manage Class Lists</a></li>
             <li id="canvas-tab" style="display: none;"><a onclick="navTo('canvas');">Load Canvas Reports</a></li>
+            <li id="ind-tab"><a onclick="navTo('ind');">Independent Plan Entry</a></li>
             <li id="zoom-tab"><a onclick="navTo('zoom');">Load Zoom Reports</a></li>
             <li id="reports-tab"><a onclick="navTo('reports');">Get Reports</a></li>
         </ul>
@@ -290,22 +332,27 @@ Copyright: 2020-2021, all rights reserved
     <div id="setup" class="panel">
         <h2>Requirements/Thresholds:</h2>
         <ul>
-            <li>A separate zoom id/recurring meeting is required for each class period.  Using just one zoom meeting for all classes will not work.</li>
-            <li>Use Microsoft Edge or Chrome.  Safari or Firefox will not work.</li>
-            <li>A student is marked "present" if they typed at least 1 response into the zoom chat AND they typed at least 4 words into the chat during the session.</li>
+            <li>A separate zoom id/recurring meeting is required for each class period. Using just one zoom meeting for
+                all classes will not work.</li>
+            <li>Use Microsoft Edge or Chrome. Safari or Firefox will not work.</li>
+            <li>A student is marked "present" if they typed at least 1 response into the zoom chat AND they typed at
+                least 4 words into the chat during the session.</li>
         </ul>
         <h2>Required Zoom Settings:</h2>
-        <a href="#" onclick="this.style.display='none';$('#zoom-setting-instructions').style.display='unset';">Click to Expand</a>
+        <a href="#" onclick="this.style.display='none';$('#zoom-setting-instructions').style.display='unset';">Click to
+            Expand</a>
         <span id="zoom-setting-instructions" style="display: none;">
-            <p>In the top bar on your Mac, Click <b>Zoom</b> > <b>Preferences...</b>. In the window that opens, click &quot;View More Settings&quot;.</p>
-            <img src="zoom-settings-1.png"/>
+            <p>In the top bar on your Mac, Click <b>Zoom</b> > <b>Preferences...</b>. In the window that opens, click
+                &quot;View More Settings&quot;.</p>
+            <img src="zoom-settings-1.png" />
             <p>Make sure that &quot;Only authenticated users can join meetings&quot; is turned on.</p>
-            <img src="zoom-settings-2.png"/>
+            <img src="zoom-settings-2.png" />
             <p>Make sure that &quot;Auto saving chats&quot; is turned on.</p>
-            <img src="zoom-settings-3.png"/>
+            <img src="zoom-settings-3.png" />
         </span>
         <h2>Setup:</h2>
-        Instructions: (<a href="https://www.youtube.com/watch?v=uLQ0gJMyuWM" target="_blank">click here for a how to video</a>)
+        Instructions: (<a href="https://www.youtube.com/watch?v=uLQ0gJMyuWM" target="_blank">click here for a how to
+            video</a>)
         <ul>
             <li>
                 It is not necessary to fill out all of the blanks below.
@@ -439,6 +486,27 @@ Copyright: 2020-2021, all rights reserved
             disabled>Import Canvas data</button>
     </div>
 
+    <div id="ind" class="panel">
+        <h2>Independent Plan Entry:</h2>
+        Start typing the name of a student to mark that they have submitted an independent learning plan for this week.
+        <p><b>Find student by first name</b>:</p>
+        <table>
+            <tr>
+                <td>
+                    <div class="autocomplete">
+                        <input id="students-by-firstname" type="text" name="students-by-firstname-input" size="40">
+                    </div>
+                </td>
+                <td><button id="set-independent-plan" class="button-css" style="margin:0;"
+                        onclick="setIndependentPlan($('#students-by-firstname').value)">Mark plan for this week</button>
+                </td>
+            </tr>
+        </table>
+        <br><br>
+        <hr>
+        <div id="independent-plans"></div><br><br>
+    </div>
+
     <div id="zoom" class="panel">
         <h2>Zoom report entry:</h2>
         <!--<p>Note: If a student is <b>not</b> logged in using their school account, this will attempt to identify the
@@ -473,8 +541,10 @@ Copyright: 2020-2021, all rights reserved
     </div>
 
     <footer>
-        <b>Attendance <a href="https://www.definition-of.com/Combobulator" target="_blank">Combobulator</a> v2.0</b> - <a
-            href="https://github.com/MatzElectronics" target="_blank">Matthew Matz</a> &copy;2020-<script>document.write((new Date).getFullYear())</script>. All rights
+        <b>Attendance <a href="https://www.definition-of.com/Combobulator" target="_blank">Combobulator</a> v2.0</b> -
+        <a href="https://github.com/MatzElectronics" target="_blank">Matthew Matz</a> &copy;2020-<script>
+            document.write((new Date).getFullYear())
+        </script>. All rights
         reserved.
     </footer>
     <script>
@@ -559,6 +629,10 @@ Copyright: 2020-2021, all rights reserved
                 }
 
                 showChatAnalysis($('#report-period').value);
+            }
+
+            if (panelId === 'ind') {
+                displayIndepedentPlanList();
             }
         }
 
@@ -1043,7 +1117,7 @@ Copyright: 2020-2021, all rights reserved
                 return settingsData.course;
             } else {
                 //alert('There appears to be a problem with your settings or student list: no course found for period ' +
-                    //period);
+                //period);
                 return settings[0].course || 'none';
             }
         }
@@ -1231,6 +1305,68 @@ Copyright: 2020-2021, all rights reserved
                 '\n');
         }
 
+
+        function setIndependentPlan(studentInfoString) {
+
+            // find the date of the next upcoming Sunday
+            let expDate = new Date();
+            expDate.setDate(expDate.getDate() + (14 - expDate.getDay()) % 7);
+
+            let studentInfo = studentInfoString.replace(/[\(\)]/g, '|').replace(/Period/g, '').replace(/ - /g, '|')
+                .split('|');
+            studentInfo[2] = studentInfo[2].trim();
+
+            for (let k = 0; k < studentList.length; k++) {
+                if (studentInfo[1] == studentList[k].id && studentInfo[2] == studentList[k].period) {
+                    studentList[k].indPlanExp = expDate;
+                    break;
+                }
+            }
+
+            $('#students-by-firstname').value = '';
+
+            localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
+            displayIndepedentPlanList();
+        }
+
+        function displayIndepedentPlanList() {
+            let studentsWithPlans = [];
+
+            for (let k = 0; k < studentList.length; k++) {
+                if (studentList[k].indPlanExp) {
+                    if (Date.parse(studentList[k].indPlanExp) > Date.now()) {
+                        studentsWithPlans.push(
+                            `${studentList[k].period}|${studentList[k].last}, ${studentList[k].first}|${k}`);
+                    } else {
+                        delete studentList[k].indPlanExp;
+                    }
+                }
+            }
+            studentsWithPlans = studentsWithPlans.sort();
+
+            let curPer = '';
+            let listStr = '';
+            if (studentsWithPlans.length > 0) {
+                for (let k = 0; k < studentsWithPlans.length; k++) {
+                    let stuInfo = studentsWithPlans[k].split('|');
+                    if (curPer !== stuInfo[0]) {
+                        curPer = stuInfo[0];
+                        listStr += '<h3>Period ' + curPer + '</h3>\n';
+                    }
+                    listStr += stuInfo[1] + ' (<a href="#" onclick="removeIndependentPlan(' + stuInfo[2] + ');">remove</a>)<br>\n';
+                }
+            }
+
+            $('#independent-plans').innerHTML = listStr;
+            localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
+        }
+
+        function removeIndependentPlan(idx) {
+            delete studentList[idx].indPlanExp;
+            localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
+            displayIndepedentPlanList();
+        }
+
         /*
         function showAttendance(period, showDetails, callNextPeriod) {
 
@@ -1411,7 +1547,7 @@ Copyright: 2020-2021, all rights reserved
             if (isNaN(currentWidth)) {
                 currentWidth = tableRow.offsetWidth;
             }
-            
+
             tableRow.insertAdjacentHTML('afterend', '<tr ><td>&nbsp;</td><td class="chat-text-display" colspan="5">' +
                 chatTextString + '</td></tr>');
 
@@ -1485,6 +1621,15 @@ Copyright: 2020-2021, all rights reserved
                 if (studentList[i].period === period) {
                     let zoomChatIndex = studentList[i].id + '-' + settings[zoomIndex].zoomId;
                     let svgImage = '';
+                    let attendMetric = false;
+                    let hasIndPlan = false;
+
+                    if (Date.parse(studentList[i].indPlanExp) > Date.now()) {
+                        attendMetric = true;
+                        hasIndPlan = true;
+                        svgImage =
+                            '<svg viewBox="0 0 150 20"><rect fill="rgb(127,127,255)" stroke="none" x="0" y="7" width="150" height="13"/></svg>';
+                    }
 
                     if (attendedListIndex > -1) {
                         let d = participationData[attendedListIndex][0];
@@ -1503,7 +1648,7 @@ Copyright: 2020-2021, all rights reserved
                         if (zoomChatResults[zoomChatIndex]) {
                             svgImage = `<svg viewBox="0 0 150 20">`;
                             svgImage +=
-                                `<rect fill="rgb(127,255,127)" stroke="none" x="0" y="10" width="${150 * d / l}" height="10"/>`;
+                                `<rect fill="${hasIndPlan ? 'rgb(127,127,255)' : 'rgb(127,255,127)'}" stroke="none" x="0" y="10" width="${150 * d / l}" height="10"/>`;
                             svgImage +=
                                 `<rect fill="rgb(255,127,127)" stroke="none" x="${150 * d / l}" y="10" width="150" height="10"/>`;
 
@@ -1523,7 +1668,6 @@ Copyright: 2020-2021, all rights reserved
                         }
                     }
 
-                    let attendMetric = false;
                     let chatTextContents = '';
                     if (zoomChatResults[zoomChatIndex]) {
                         if (zoomChatResults[zoomChatIndex].chat.length >= CHAT_INTERACTIONS_MINIMUM && zoomChatResults[
@@ -1532,9 +1676,11 @@ Copyright: 2020-2021, all rights reserved
                         }
 
                         zoomChatResults[zoomChatIndex].chat.forEach((c) => {
-                            chatTextContents += '&bull; ' + c.text.replace(/"/gi, '&quot;').replace(/>/gi, '&gt;').replace(/</gi, '&lt;').replace(/'/gi, '&apos;') + '<br>';
+                            chatTextContents += '&bull; ' + c.text.replace(/"/gi, '&quot;').replace(/>/gi,
+                                '&gt;').replace(/</gi, '&lt;').replace(/'/gi, '&apos;') + '<br>';
                         });
                     }
+
                     attended.push(
                         `${studentList[i].last}, ${studentList[i].first}<!--,${studentList[i].id}-->` +
                         '\u275A' + (!attendMetric ? 'absent' : '') +
@@ -1596,7 +1742,8 @@ Copyright: 2020-2021, all rights reserved
                     '<td style="text-align:center;">' + rowData[3] + '</td>' + // Zoom chat interactions
                     '<td style="text-align:center;">' + rowData[4] + '</td>' + // Zoom chat words
                     '<td style="text-align:center; background-color: #fff;"' +
-                    (rowData[6] !== '' ? ' onmouseleave="hideChatText()" onmouseenter="showChatText(this, ' + chatTextDataIndex + ')"' : '') + // Zoom summary
+                    (rowData[6] !== '' ? ' onmouseleave="hideChatText()" onmouseenter="showChatText(this, ' +
+                        chatTextDataIndex + ')"' : '') + // Zoom summary
                     '>' + rowData[5] + '</td></tr>';
 
                 tableOutput += rowText;
@@ -1712,7 +1859,8 @@ Copyright: 2020-2021, all rights reserved
                         const file = await entry[1].getFile();
                         let contents = await file.text();
 
-                        contents = contents.replace(/([0-9]+:[0-9]+:[0-9]+)\s*From(.*?to.*?):\s*(.*?)\n/gm, '$1 From$2 : $3\n');
+                        contents = contents.replace(/([0-9]+:[0-9]+:[0-9]+)\s*From(.*?to.*?):\s*(.*?)\n/gm,
+                            '$1 From$2 : $3\n');
                         contents = contents.replace(/\(Direct Message\)/gi, '');
 
                         contents = contents.trim().replace(/ From (.*?) to (.*?) : /g, '\u275A$1\u275A$2\u275A');
@@ -1723,29 +1871,32 @@ Copyright: 2020-2021, all rights reserved
 
             zoomChatText.forEach((chatLine) => {
                 let tempData = chatLine.split('\u275A');
-                let tempStudentId = findStudentByZoomHandle(tempData[1].trim());
+                if (tempData && tempData[1]) {
+                    let tempStudentId = findStudentByZoomHandle(tempData[1].trim());
 
-                // TODO: add student name matching/guessing: idFromSimilarName(tempData[1])
+                    // TODO: add student name matching/guessing: idFromSimilarName(tempData[1])
 
-                if (staffZoomHandles.indexOf(tempData[1]) < 0 && tempStudentId) {
-                    let studentId = tempStudentId + (zoomIdString ? '-' + zoomIdString : '');
-                    if (!zoomChatResults[studentId]) {
-                        zoomChatResults[studentId] = {
-                            zoomHandle: tempData[1].trim(),
-                            words: 0,
-                            chat: []
-                        };
+                    if (staffZoomHandles.indexOf(tempData[1]) < 0 && tempStudentId) {
+                        let studentId = tempStudentId + (zoomIdString ? '-' + zoomIdString : '');
+                        if (!zoomChatResults[studentId]) {
+                            zoomChatResults[studentId] = {
+                                zoomHandle: tempData[1].trim(),
+                                words: 0,
+                                chat: []
+                            };
+                        }
+                        let tempLine = {
+
+                            time: Math.round((Date.parse(zoomDate + ' ' + tempData[0].trim()) -
+                                    zoomMeetingStart) /
+                                600) / 100,
+                            to: tempData[2].trim(),
+                            count: tempData[3].trim().split(' ').length,
+                            text: tempData[3].trim()
+                        }
+                        zoomChatResults[studentId].chat.push(tempLine);
+                        zoomChatResults[studentId].words += tempLine.count;
                     }
-                    let tempLine = {
-
-                        time: Math.round((Date.parse(zoomDate + ' ' + tempData[0].trim()) - zoomMeetingStart) /
-                            600) / 100,
-                        to: tempData[2].trim(),
-                        count: tempData[3].trim().split(' ').length,
-                        text: tempData[3].trim()
-                    }
-                    zoomChatResults[studentId].chat.push(tempLine);
-                    zoomChatResults[studentId].words += tempLine.count;
                 }
             });
             return zoomChatResults;
@@ -1818,8 +1969,7 @@ Copyright: 2020-2021, all rights reserved
             for (let i = 0; i < studentList.length; i++) {
                 let attempt1 = textSimilarity(name, studentList[i].first + ' ' + studentList[i].last);
                 let attempt2 = textSimilarity(name, studentList[i].last + ' ' + studentList[i].first);
-                nameResults.push((attempt1 > attempt2 ? attempt1 : attempt2).toFixed(5) + '|' + studentList[i]
-                .id); // + '|' + studentList[i].first + ' ' + studentList[i].last);
+                nameResults.push((attempt1 > attempt2 ? attempt1 : attempt2).toFixed(5) + '|' + studentList[i].id); // + '|' + studentList[i].first + ' ' + studentList[i].last);
             }
             nameResults = nameResults.sort();
             return nameResults[nameResults.length - 1].split('|')[1];
@@ -1892,6 +2042,117 @@ Copyright: 2020-2021, all rights reserved
             return weight;
         }
 
+
+
+
+        function autocomplete(inp, arr) {
+            /*the autocomplete function takes two arguments,
+            the text field element and an array of possible autocompleted values:*/
+            var currentFocus;
+            /*execute a function when someone writes in the text field:*/
+            inp.addEventListener("input", function (e) {
+                var a, b, i, val = this.value;
+                /*close any already open lists of autocompleted values*/
+                closeAllLists();
+                if (!val) {
+                    return false;
+                }
+                currentFocus = -1;
+                /*create a DIV element that will contain the items (values):*/
+                a = document.createElement("DIV");
+                a.setAttribute("id", this.id + "autocomplete-list");
+                a.setAttribute("class", "autocomplete-items");
+                /*append the DIV element as a child of the autocomplete container:*/
+                this.parentNode.appendChild(a);
+                /*for each item in the array...*/
+                for (i = 0; i < arr.length; i++) {
+                    /*check if the item starts with the same letters as the text field value:*/
+                    if (arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
+                        /*create a DIV element for each matching element:*/
+                        b = document.createElement("DIV");
+                        /*make the matching letters bold:*/
+                        b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
+                        b.innerHTML += arr[i].substr(val.length);
+                        /*insert a input field that will hold the current array item's value:*/
+                        b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+                        /*execute a function when someone clicks on the item value (DIV element):*/
+                        b.addEventListener("click", function (e) {
+                            /*insert the value for the autocomplete text field:*/
+                            inp.value = this.getElementsByTagName("input")[0].value;
+                            /*close the list of autocompleted values,
+                            (or any other open lists of autocompleted values:*/
+                            closeAllLists();
+                        });
+                        a.appendChild(b);
+                    }
+                }
+            });
+            /*execute a function presses a key on the keyboard:*/
+            inp.addEventListener("keydown", function (e) {
+                var x = document.getElementById(this.id + "autocomplete-list");
+                if (x) x = x.getElementsByTagName("div");
+                if (e.keyCode == 40) {
+                    /*If the arrow DOWN key is pressed,
+                    increase the currentFocus variable:*/
+                    currentFocus++;
+                    /*and and make the current item more visible:*/
+                    addActive(x);
+                } else if (e.keyCode == 38) { //up
+                    /*If the arrow UP key is pressed,
+                    decrease the currentFocus variable:*/
+                    currentFocus--;
+                    /*and and make the current item more visible:*/
+                    addActive(x);
+                } else if (e.keyCode == 13) {
+                    /*If the ENTER key is pressed, prevent the form from being submitted,*/
+                    e.preventDefault();
+                    if (currentFocus > -1) {
+                        /*and simulate a click on the "active" item:*/
+                        if (x) x[currentFocus].click();
+                    }
+                }
+            });
+
+            function addActive(x) {
+                /*a function to classify an item as "active":*/
+                if (!x) return false;
+                /*start by removing the "active" class on all items:*/
+                removeActive(x);
+                if (currentFocus >= x.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = (x.length - 1);
+                /*add class "autocomplete-active":*/
+                x[currentFocus].classList.add("autocomplete-active");
+            }
+
+            function removeActive(x) {
+                /*a function to remove the "active" class from all autocomplete items:*/
+                for (var i = 0; i < x.length; i++) {
+                    x[i].classList.remove("autocomplete-active");
+                }
+            }
+
+            function closeAllLists(elmnt) {
+                /*close all autocomplete lists in the document,
+                except the one passed as an argument:*/
+                var x = document.getElementsByClassName("autocomplete-items");
+                for (var i = 0; i < x.length; i++) {
+                    if (elmnt != x[i] && elmnt != inp) {
+                        x[i].parentNode.removeChild(x[i]);
+                    }
+                }
+            }
+            /*execute a function when someone clicks in the document:*/
+            document.addEventListener("click", function (e) {
+                closeAllLists(e.target);
+            });
+        }
+
+        /*An array containing all the country names in the world:*/
+
+        /*initiate the autocomplete function on the "myInput" element, and pass along the countries array as possible autocomplete values:*/
+        autocomplete($("#students-by-firstname"), studentList.map((e) => {
+            return `${e.first} ${e.last} (${e.id}) Period ${e.period} - ${courseFromPeriod(e.period)}`;
+        }).sort());
     </script>
 
 </body>
