@@ -2162,7 +2162,7 @@ Copyright: 2020-2021, all rights reserved
 
         /*initiate the autocomplete function on the "myInput" element, and pass along the countries array as possible autocomplete values:*/
         autocomplete($("#students-by-firstname"), studentList.map((e) => {
-            return `${e.first} ${e.last} (${e.id}) Period ${e.period} - ${courseFromPeriod(e.period)}`;
+            return `${e.first.replace(/'/g,'')} ${e.last.replace(/'/g,'')} (${e.id}) Period ${e.period} - ${courseFromPeriod(e.period)}`;
         }).sort());
     </script>
 
