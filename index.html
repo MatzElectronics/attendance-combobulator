@@ -324,7 +324,7 @@ Copyright: 2020-2021, all rights reserved
             <li id="setup-tab"><a onclick="navTo('setup');">Setup</a></li>
             <li id="synergy-tab"><a onclick="navTo('synergy');">Manage Class Lists</a></li>
             <li id="canvas-tab" style="display: none;"><a onclick="navTo('canvas');">Load Canvas Reports</a></li>
-            <li id="ind-tab"><a onclick="navTo('ind');">Independent Plan Entry</a></li>
+            <li id="ind-tab"><a onclick="navTo('ind');">Individual Entry</a></li>
             <li id="zoom-tab"><a onclick="navTo('zoom');">Load Zoom Reports</a></li>
             <li id="reports-tab"><a onclick="navTo('reports');">Get Reports</a></li>
         </ul>
@@ -487,8 +487,9 @@ Copyright: 2020-2021, all rights reserved
     </div>
 
     <div id="ind" class="panel">
-        <h2>Independent Plan Entry:</h2>
-        Start typing the name of a student to mark that they have submitted an independent learning plan for this week. (<a href="https://youtu.be/ZvS-G9pZ-w8" target="_blank">Click here</a> for a how-to video)
+        <h2>Individual Attendance Entry:</h2>
+        Start typing the name of a student to mark present for a specific amount of time / number of days. (<a href="https://youtu.be/ZvS-G9pZ-w8" target="_blank">Click here</a> for a how-to video)<br>
+        There are <b><script>document.write((Math.round((Date.parse("June 18, 2022") - Date.now()) / 86400000) + 1))</script></b> days remaining in the school year.
         <p><b>Find student by first name</b>:</p>
         <table>
             <tr>
@@ -498,8 +499,12 @@ Copyright: 2020-2021, all rights reserved
                     </div>
                 </td>
                 <td><button id="set-independent-plan" class="button-css" style="margin:0;"
-                        onclick="setIndependentPlan($('#students-by-firstname').value)">Mark plan for this week</button>
+                        onclick="setIndependentPlan($('#students-by-firstname').value, $('#individual-attended-days').value)">Mark present for</button>
                 </td>
+                <td>
+                    <input id="individual-attended-days" type="text" name="individual-attended-days" size="4" value="1">
+                </td>
+                <td style="vertical-align: middle;">&nbsp;<b>day(s)</b></td>
             </tr>
         </table>
         <br><br>
@@ -1306,11 +1311,17 @@ Copyright: 2020-2021, all rights reserved
         }
 
 
-        function setIndependentPlan(studentInfoString) {
+        function setIndependentPlan(studentInfoString, numberOfDaysString) {
+            let numberOfDays = parseInt(numberOfDaysString);
+            if (isNaN(numberOfDays)) {
+                numberOfDays = 1;
+            }
 
             // find the date of the next upcoming Sunday
             let expDate = new Date();
-            expDate.setDate(expDate.getDate() + (14 - expDate.getDay()) % 7);
+            expDate.setHours(23, 59, 0, 0);
+
+            expDate.setDate(expDate.getDate() + (numberOfDays - 1));
 
             let studentInfo = studentInfoString.replace(/[\(\)]/g, '|').replace(/Period/g, '').replace(/ - /g, '|')
                 .split('|');
