@@ -568,6 +568,8 @@ Copyright: 2020-2021, all rights reserved
         window.zoomData = [];
         window.zoomMeetingDetails = {};
         window.zoomChatResults = {};
+        window.nonMatch = [];
+        window.chatPullData = [];
 
         window.canvasDataLastUpdateTimeout = null;
         window.zoomDataLastUpdateTimeout = null;
@@ -750,6 +752,10 @@ Copyright: 2020-2021, all rights reserved
             const fileSelector = document.getElementById('file-selector');
             let failCount = 0;
             let failData = [];
+            nonMatch = [];
+            chatPullData = [];
+
+            $('#zoom-count').innerText = 'Please wait...';
 
             if (fileSelector.files) {
                 for (let i = 0; i < fileSelector.files.length; i++) {
@@ -782,11 +788,54 @@ Copyright: 2020-2021, all rights reserved
                     console.log(failData);
                     alert('Warning: Unable to load ' + failCount + ' files.');
                 }
+
+                let stillNoMatch = [];
+
+                if (nonMatch.length > 0) {
+                    //console.log(nonMatch);  // TODO: correlate names here.
+
+                    let meetingLengths = {};
+                    settings.forEach(s => {
+                        meetingLengths[s.zoomId] = zoomData.find(z => z.meetingId == s.zoomId).meetingLength;
+                    });
+
+                    nonMatch.forEach(n => {
+                        let t = idFromSimilarName(n[0], n[4], true);
+                        if (t > -1) {
+                            let stu = studentList[t];
+                            studentList[t].zoomHandle = n[0];
+                            
+                            zoomData.push({
+                                'id': studentList[t].id,
+                                'name': n[0],
+                                'duration': parseInt(n[2]),
+                                'meetingLength': meetingLengths[n[6]],
+                                'course': n[5],
+                                'meetingId': n[6],
+                                'nonMatch': true
+                            });
+                        } else {
+                            stillNoMatch.push(n);
+                        }
+                    });
+
+                    chatPullData.forEach(dd => {
+                        getZoomChat(dd[0], dd[1], dd[2], dd[3]); // [csvDate, meetingId, meetingDateTime, meetingDuration];
+                    });
+                    
+
+                    $('#zoom-count').innerText = zoomData.length + ' records';
+
+                    if (stillNoMatch.length > 0) {
+                        $('#zoom-non-match').style.display = 'block';
+                        $('#zoom-non-match').innerHTML = '<b>Unable to find matches for:</b><br><br>';
+                        stillNoMatch.forEach((e) => {
+                            $('#zoom-non-match').innerHTML += `${e[5]}, Period ${e[4]}: ${e[0]} (${e[2]} minutes)<br>`;
+                        });
+                    }
+                }
             }, 2000);
 
-            setTimeout(() => {
-
-            }, 3000);
         }
 
         function getUniqueSections(periodsOnly) {
@@ -931,6 +980,7 @@ Copyright: 2020-2021, all rights reserved
             let foundFileHeader = false;
             let meetingId = null;
             let meetingCourse = '';
+            let meetingPeriod = '';
             let meetingDateTime = null;
             let meetingDuration = null;
             let successFlag = false;
@@ -938,7 +988,6 @@ Copyright: 2020-2021, all rights reserved
 
             let periodStudents = [];
             let foundIds = [];
-            let nonMatch = [];
 
             let indexList = [];
             let maxStudentTime = [];
@@ -967,7 +1016,7 @@ Copyright: 2020-2021, all rights reserved
 
                     maxStudentTime = [];
 
-                    //let currentPeriod = periodFromZoomId(meetingId);
+                    meetingPeriod = periodFromZoomId(meetingId);
                     let periodsList = periodsFromCourse(meetingCourse);
 
                     periodStudents = studentList.filter((e) => {
@@ -990,7 +1039,8 @@ Copyright: 2020-2021, all rights reserved
                         'duration': tempStudentTime,
                         'meetingLength': 30, // parseInt(meetingDuration),
                         'course': meetingCourse,
-                        'meetingId': meetingId
+                        'meetingId': meetingId,
+                        'nonMatch': false
                     });
 
                     indexList.push(zoomData.length - 1);
@@ -1003,26 +1053,11 @@ Copyright: 2020-2021, all rights reserved
 
                 } else if (timeFlag && tempData[0].length > 0 && i > 3 && tempData[1].indexOf('k12.or.us') === -1) {
 
-                    let studentIndex = findStudentByName(tempData[0], periodStudents);
+                    tempData.push(meetingPeriod);
+                    tempData.push(meetingCourse);
+                    tempData.push(meetingId);
 
-                    if (studentIndex > -1) {
-                        let studentElement = periodStudents.splice(studentIndex, 1)[0];
-                        successFlag = true;
-                        zoomData.push({
-                            'id': studentElement.id,
-                            'name': tempData[0],
-                            'duration': parseInt(tempData[2]),
-                            'meetingLength': 30, // parseInt(meetingDuration),
-                            'course': meetingCourse,
-                            'meetingId': meetingId
-                        });
-
-                        indexList.push(zoomData.length - 1);
-                        maxStudentTime.push(tempStudentTime);
-
-                    } else {
-                        nonMatch.push(tempData);
-                    }
+                    nonMatch.push(tempData);
                 }
             }
 
@@ -1044,14 +1079,7 @@ Copyright: 2020-2021, all rights reserved
                 $('#zoom-non-match').innerHTML = '';
                 $('#zoom-non-match').style.display = 'none';
             }, 1000 * 3600 * DATA_VALID_WINDOW);
-
-
-            if (nonMatch.length > 0) {
-                findSimilarNames(nonMatch, periodStudents, foundIds, meetingId);
-            }
-
-            $('#zoom-count').innerText = zoomData.length + ' records';
-
+            
             if (successFlag) {
                 // begin adding names to students
                 setTimeout(addNamesToStudents, 0);
@@ -1059,7 +1087,7 @@ Copyright: 2020-2021, all rights reserved
                 let tempDateTime = new Date(Date.parse(meetingDateTime));
                 csvDate = getDateString(true, tempDateTime);
 
-                getZoomChat(csvDate, meetingId, meetingDateTime, meetingDuration);
+                chatPullData.push([csvDate, meetingId, meetingDateTime, meetingDuration]);
 
                 return {
                     success: true
@@ -1345,9 +1373,11 @@ Copyright: 2020-2021, all rights reserved
 
             for (let k = 0; k < studentList.length; k++) {
                 if (studentList[k].indPlanExp) {
-                    if (Date.parse(studentList[k].indPlanExp) > Date.now()) {
+                    let ip = Date.parse(studentList[k].indPlanExp);
+                    if (ip > Date.now()) {
+                        let daysLeft = Math.floor((ip - Date.now()) / 86400000);
                         studentsWithPlans.push(
-                            `${studentList[k].period}|${studentList[k].last}, ${studentList[k].first}|${k}`);
+                            `${studentList[k].period}|${studentList[k].last}, ${studentList[k].first}|${k}|${daysLeft}`);  // TODO: Add the number of days this student has an exemption.
                     } else {
                         delete studentList[k].indPlanExp;
                     }
@@ -1356,19 +1386,22 @@ Copyright: 2020-2021, all rights reserved
             studentsWithPlans = studentsWithPlans.sort();
 
             let curPer = '';
-            let listStr = '';
+            let listStr = '<table class="ind-plan-table">';
+                let rr = 0;
             if (studentsWithPlans.length > 0) {
                 for (let k = 0; k < studentsWithPlans.length; k++) {
                     let stuInfo = studentsWithPlans[k].split('|');
                     if (curPer !== stuInfo[0]) {
                         curPer = stuInfo[0];
-                        listStr += '<h3>Period ' + curPer + '</h3>\n';
+                        listStr += '<tr><td colspan="3"><h3>Period ' + curPer + '</h3></td></tr>\n';
+                        rr = 0;
                     }
-                    listStr += stuInfo[1] + ' (<a href="#" onclick="removeIndependentPlan(' + stuInfo[2] + ');">remove</a>)<br>\n';
+                    listStr += `<tr style="background: #${rr %2 === 0 ? 'eee' : 'ddd'};"><td>${stuInfo[1]}</td><td>&nbsp;&nbsp;${stuInfo[3]}&nbsp;&nbsp;</td><td><a href="#" onclick="removeIndependentPlan(${stuInfo[2]});">remove</a></td></tr>\n`;
+                    rr++;
                 }
             }
 
-            $('#independent-plans').innerHTML = listStr;
+            $('#independent-plans').innerHTML = listStr + '</table>';
             localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
         }
 
@@ -1618,9 +1651,9 @@ Copyright: 2020-2021, all rights reserved
                     let listIndex = attendedList.indexOf(zoomData[i].id);
                     if (listIndex === -1) {
                         attendedList.push(zoomData[i].id);
-                        participationData.push([zoomData[i].duration, zoomData[i].meetingLength]);
+                        participationData.push([zoomData[i].duration, zoomData[i].meetingLength, zoomData[i].nonMatch]);
                     } else {
-                        participationData[listIndex] = [zoomData[i].duration, zoomData[i].meetingLength];
+                        participationData[listIndex] = [zoomData[i].duration, zoomData[i].meetingLength, zoomData[i].nonMatch];
                     }
                     foundZoomData = true;
                 }
@@ -1693,7 +1726,8 @@ Copyright: 2020-2021, all rights reserved
                     }
 
                     attended.push(
-                        `${studentList[i].last}, ${studentList[i].first}<!--,${studentList[i].id}-->` +
+                        `${studentList[i].last}, ${studentList[i].first}${(participationData[attendedListIndex] && participationData[attendedListIndex][2] ? '*' :
+                            '')}<!--,${studentList[i].id}-->` +
                         '\u275A' + (!attendMetric ? 'absent' : '') +
                         '\u275A' + (participationData[attendedListIndex] ? participationData[attendedListIndex][0] :
                             '') +
@@ -1922,69 +1956,34 @@ Copyright: 2020-2021, all rights reserved
             return null;
         }
 
-        function findSimilarNames(nonMatch, periodStudents, foundIds, meetingId) {
-            let courseName = courseFromZoomId(meetingId);
-            let periodName = periodFromZoomId(meetingId);
-            let foundMatches = [];
-
-            for (let j = 0; j < nonMatch.length; j++) {
-
-                let name = nonMatch[j][0];
-
-                let foundStudent = {};
-                let maxSimilarity = 0;
-
-                for (let i = 0; i < periodStudents.length; i++) {
-
-                    // Skip students what were already found
-                    if (foundIds.indexOf(periodStudents[i].id) === -1) {
-
-                        // removing casing for student names
-                        let studentName = periodStudents[i].first + ' ' + periodStudents[i].last;
-
-                        let currentSimilarity = textSimilarity(studentName, name);
-                        if (currentSimilarity > maxSimilarity) {
-                            maxSimilarity = currentSimilarity;
-                            foundStudent = {
-                                'id': periodStudents[i].id,
-                                'name': studentName,
-                                'duration': nonMatch[j][2],
-                                'course': courseName,
-                                'nonMatchIndex': j
-                            }
+        function idFromSimilarName(name, period, returnIndex) {
+            nameResults = [];
+            for (let i = 0; i < studentList.length; i++) {
+                if (studentList[i].period == period) {
+                    if (name.replace(/[^0-9]/g,'') == studentList[i].id) {
+                        nameResults.push((1.0).toFixed(5) + '|' + studentList[i].id + '|' + i);
+                    } else {
+                        let attempt1 = textSimilarity(name, studentList[i].first + ' ' + studentList[i].last);
+                        let attempt2 = textSimilarity(name, studentList[i].last + ' ' + studentList[i].first);
+                        let attempt = attempt1 > attempt2 ? attempt1 : attempt2;
+                        if (attempt >= 0.75) {
+                            nameResults.push(attempt.toFixed(5) + '|' + studentList[i].id + '|' + i); // + '|' + studentList[i].first + ' ' + studentList[i].last);
                         }
                     }
                 }
-
-                if (maxSimilarity > 0.8) {
-                    foundMatches.push(foundStudent.nonMatchIndex);
-                    zoomData.push(foundStudent);
-                }
+            }
+            if (nameResults.length < 1) {
+                return returnIndex ? -1 : null;
             }
 
-            nonMatch.forEach((e, i) => {
-                if (foundMatches.indexOf(i) === -1) {
-                    if ($('#zoom-non-match').innerHTML === '') {
-                        $('#zoom-non-match').style.display = 'block';
-                        $('#zoom-non-match').innerHTML = '<b>Unable to find matches for:</b><br><br>';
-                    }
-
-                    $('#zoom-non-match').innerHTML += courseName + ', Period ' + periodName + ': ' + e[0] +
-                        ' (' + e[2] + ' minutes)<br>';
-                }
-            });
-        }
-
-        function idFromSimilarName(name) {
-            nameResults = [];
-            for (let i = 0; i < studentList.length; i++) {
-                let attempt1 = textSimilarity(name, studentList[i].first + ' ' + studentList[i].last);
-                let attempt2 = textSimilarity(name, studentList[i].last + ' ' + studentList[i].first);
-                nameResults.push((attempt1 > attempt2 ? attempt1 : attempt2).toFixed(5) + '|' + studentList[i].id); // + '|' + studentList[i].first + ' ' + studentList[i].last);
-            }
             nameResults = nameResults.sort();
-            return nameResults[nameResults.length - 1].split('|')[1];
+            if (returnIndex) {
+                return parseInt(nameResults[nameResults.length - 1].split('|')[2]);
+            } else {
+                return nameResults[nameResults.length - 1].split('|')[1];
+            }
         }
+
 
         // Text similarity function
         // Source: https://medium.com/@sumn2u/string-similarity-comparision-in-js-with-examples-4bae35f13968
