@@ -755,10 +755,14 @@ Copyright: 2020-2021, all rights reserved
             nonMatch = [];
             chatPullData = [];
 
+            let filecount = -1;
+            let loops = 0;
+
             $('#zoom-count').innerText = 'Please wait...';
 
             if (fileSelector.files) {
-                for (let i = 0; i < fileSelector.files.length; i++) {
+                filecount = fileSelector.files.length;
+                for (let i = 0; i < filecount; i++) {
                     if (fileSelector.files[i]) {
                         var reader = new FileReader();
 
@@ -774,6 +778,8 @@ Copyright: 2020-2021, all rights reserved
                                     meetingDuration: processResult.meetingDuration
                                 }
                             }
+
+                            filecount--;
                         }
 
                         reader.readAsText(fileSelector.files[i]);
@@ -781,7 +787,15 @@ Copyright: 2020-2021, all rights reserved
                 }
             }
 
-            setTimeout(() => {
+            let processedDoneInterval = setInterval(() => {
+                loops++;
+                if (filecount === 0 || loops > 20) {
+                    clearInterval(processedDoneInterval);
+                    setTimeout(finishZoomProcessing, 250);
+                }
+            }, 100);
+
+            function finishZoomProcessing() {
                 fileSelector.value = '';
                 $('#file-selection-list').innerHTML = '';
                 if (failCount > 0) {
@@ -796,7 +810,12 @@ Copyright: 2020-2021, all rights reserved
 
                     let meetingLengths = {};
                     settings.forEach(s => {
-                        meetingLengths[s.zoomId] = zoomData.find(z => z.meetingId == s.zoomId).meetingLength;
+                        let mmm = zoomData.find(z => z.meetingId == s.zoomId);
+                        if (mmm) {
+                            meetingLengths[s.zoomId] = zoomData.find(z => z.meetingId == s.zoomId).meetingLength;
+                        } else {
+                            meetingLengths[s.zoomId] = 30;
+                        }
                     });
 
                     nonMatch.forEach(n => {
@@ -834,8 +853,7 @@ Copyright: 2020-2021, all rights reserved
                         });
                     }
                 }
-            }, 2000);
-
+            }
         }
 
         function getUniqueSections(periodsOnly) {
