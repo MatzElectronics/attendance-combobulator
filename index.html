@@ -787,6 +787,7 @@ Copyright: 2020-2021, all rights reserved
                 }
             }
 
+            /*
             let processedDoneInterval = setInterval(() => {
                 loops++;
                 if (filecount === 0 || loops > 20) {
@@ -794,6 +795,9 @@ Copyright: 2020-2021, all rights reserved
                     setTimeout(finishZoomProcessing, 250);
                 }
             }, 100);
+            */
+
+            setTimeout(finishZoomProcessing, 2500);
 
             function finishZoomProcessing() {
                 fileSelector.value = '';
