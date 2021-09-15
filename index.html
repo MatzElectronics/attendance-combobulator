@@ -1010,6 +1010,8 @@ Copyright: 2020-2021, all rights reserved
             let indexList = [];
             let maxStudentTime = [];
 
+            let tempIndPlanExpData = [];
+
             chatTextData = [];
 
             // get student ID from email by removing the domain
@@ -1138,9 +1140,12 @@ Copyright: 2020-2021, all rights reserved
 
         function removeClass(period) {
             let tempStudentList = [];
+            tempIndPlanExpData = [];
             for (let i = 0; i < studentList.length; i++) {
                 if (studentList[i].period !== period) {
                     tempStudentList.push(studentList[i]);
+                } else if (studentList[i].indPlanExp) {
+                    tempIndPlanExpData.push([studentList[i].id, studentList[i].indPlanExp]);
                 }
             }
             studentList = tempStudentList;
@@ -1248,6 +1253,15 @@ Copyright: 2020-2021, all rights reserved
                     recordCount++;
                 }
             });
+
+            for (let i = 0; i < studentList.length; i++) {
+                for (let j = 0; j < tempIndPlanExpData.length; j++) {
+                    if (studentList[i].period === period && studentList[i].id === tempIndPlanExpData[j][0]) {
+                        studentList[i].indPlanExp = tempIndPlanExpData[j][1];
+                    }
+                }
+            }
+
 
             localStorage.setItem('EDGEAC-studentList', JSON.stringify(studentList));
             getUniqueSections();
