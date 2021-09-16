@@ -221,6 +221,10 @@ Copyright: 2020-2021, all rights reserved
             color: #999;
         }
 
+        #zoom-setting-instructions img {
+            width: 50%;
+        }
+
         .warning {
             background-color: #ffc;
         }
@@ -1001,7 +1005,7 @@ Copyright: 2020-2021, all rights reserved
         function processZoomStudents(zoomRawData, callback) {
 
             console.log("processing file");
-            
+
             let foundFileHeader = false;
             let meetingId = null;
             let meetingCourse = '';
