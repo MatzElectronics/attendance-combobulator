@@ -1934,6 +1934,8 @@ Copyright: 2020-2021, all rights reserved
                 }
             }
 
+            console.log(zoomFolderHandles);
+            
             for (let i = 0; i < zoomFolderHandles.length; i++) {
                 for await (const entry of zoomFolderHandles[i]) {
                     if (entry[0].indexOf('meeting_saved_chat') > -1) {
