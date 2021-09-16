@@ -344,11 +344,11 @@ Copyright: 2020-2021, all rights reserved
         <span id="zoom-setting-instructions" style="display: none;">
             <p>In the top bar on your Mac, Click <b>Zoom</b> > <b>Preferences...</b>. In the window that opens, click
                 &quot;View More Settings&quot;.</p>
-            <img src="zoom-settings-1.png" />
+            <img src="zoom-setting-1.png" />
             <p>Make sure that &quot;Only authenticated users can join meetings&quot; is turned on.</p>
-            <img src="zoom-settings-2.png" />
+            <img src="zoom-setting-2.png" />
             <p>Make sure that &quot;Auto saving chats&quot; is turned on.</p>
-            <img src="zoom-settings-3.png" />
+            <img src="zoom-setting-3.png" />
         </span>
         <h2>Setup:</h2>
         Instructions: (<a href="https://www.youtube.com/watch?v=uLQ0gJMyuWM" target="_blank">click here for a how to
@@ -999,6 +999,9 @@ Copyright: 2020-2021, all rights reserved
         }
 
         function processZoomStudents(zoomRawData, callback) {
+
+            console.log("processing file");
+            
             let foundFileHeader = false;
             let meetingId = null;
             let meetingCourse = '';
@@ -1935,7 +1938,7 @@ Copyright: 2020-2021, all rights reserved
             }
 
             console.log(zoomFolderHandles);
-            
+
             for (let i = 0; i < zoomFolderHandles.length; i++) {
                 for await (const entry of zoomFolderHandles[i]) {
                     if (entry[0].indexOf('meeting_saved_chat') > -1) {
