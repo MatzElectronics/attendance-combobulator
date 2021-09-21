@@ -784,6 +784,7 @@ Copyright: 2020-2021, all rights reserved
                             }
 
                             filecount--;
+                            console.log('Processing a file', filecount);
                         }
 
                         reader.readAsText(fileSelector.files[i]);
@@ -796,6 +797,7 @@ Copyright: 2020-2021, all rights reserved
                 if (filecount === 0 || loops > 20) {
                     clearInterval(processedDoneInterval);
                     setTimeout(finishZoomProcessing, 250);
+                    console.log(loops > 20 ? 'timeout by loop count' : 'timeout by file count');
                 }
             }, 100);
 
@@ -810,6 +812,8 @@ Copyright: 2020-2021, all rights reserved
                 let stillNoMatch = [];
 
                 if (nonMatch.length > 0) {
+
+                    console.log(nonMatch);
 
                     let meetingLengths = {};
                     settings.forEach(s => {
@@ -842,6 +846,8 @@ Copyright: 2020-2021, all rights reserved
                     });
                 }
 
+                console.log(chatPullData);
+                
                 chatPullData.forEach(dd => {
                     getZoomChat(dd[0], dd[1], dd[2], dd[3]); // [csvDate, meetingId, meetingDateTime, meetingDuration];
                 });
