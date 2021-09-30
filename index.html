@@ -847,7 +847,7 @@ Copyright: 2020-2021, all rights reserved
                 }
 
                 console.log(chatPullData);
-                
+
                 chatPullData.forEach(dd => {
                     getZoomChat(dd[0], dd[1], dd[2], dd[3]); // [csvDate, meetingId, meetingDateTime, meetingDuration];
                 });
@@ -1957,10 +1957,12 @@ Copyright: 2020-2021, all rights reserved
                 }
             }
 
+            let thisClassPeriod = periodFromZoomId(zoomIdString);
+
             zoomChatText.forEach((chatLine) => {
                 let tempData = chatLine.split('\u275A');
                 if (tempData && tempData[1]) {
-                    let tempStudentId = findStudentByZoomHandle(tempData[1].trim());
+                    let tempStudentId = findStudentByZoomHandle(tempData[1].trim(), thisClassPeriod);
 
                     // TODO: add student name matching/guessing: idFromSimilarName(tempData[1])
 
@@ -1990,25 +1992,30 @@ Copyright: 2020-2021, all rights reserved
             return zoomChatResults;
         }
 
-        function findStudentByZoomHandle(zoomHandle) {
+        function findStudentByZoomHandle(zoomHandle, period) {
             for (let i = 0; i < studentList.length; i++) {
                 if (zoomHandle === studentList[i].zoomHandle) {
                     return studentList[i].id;
                 }
             }
-            return null;
+            return handleSearch = idFromSimilarName(zoomHandle, period, false, true)
         }
 
-        function idFromSimilarName(name, period, returnIndex) {
+        function idFromSimilarName(name, period, returnIndex, searchByHandle) {
             nameResults = [];
             for (let i = 0; i < studentList.length; i++) {
                 if (studentList[i].period == period) {
                     if (name.replace(/[^0-9]/g,'') == studentList[i].id) {
                         nameResults.push((1.0).toFixed(5) + '|' + studentList[i].id + '|' + i);
                     } else {
-                        let attempt1 = textSimilarity(name, studentList[i].first + ' ' + studentList[i].last);
-                        let attempt2 = textSimilarity(name, studentList[i].last + ' ' + studentList[i].first);
-                        let attempt = attempt1 > attempt2 ? attempt1 : attempt2;
+                        let attempt = 0;
+                        if (!searchByHandle) {
+                            let attempt1 = textSimilarity(name, studentList[i].first + ' ' + studentList[i].last);
+                            let attempt2 = textSimilarity(name, studentList[i].last + ' ' + studentList[i].first);
+                            attempt = attempt1 > attempt2 ? attempt1 : attempt2;
+                        } else if (studentList[i].zoomHandle) {
+                            attempt = textSimilarity(name, studentList[i].zoomHandle);
+                        }
                         if (attempt >= 0.75) {
                             nameResults.push(attempt.toFixed(5) + '|' + studentList[i].id + '|' + i); // + '|' + studentList[i].first + ' ' + studentList[i].last);
                         }
