@@ -11,7 +11,9 @@ Copyright: 2020-2021, all rights reserved
 
 <head>
     <script>
-        const CHAT_INTERACTIONS_MINIMUM = 1;
+        const CHAT_MINIMUM_SUM = 4  // This overrides the two metrcis below. It is threshold for the sum of the words and interations.
+
+        const CHAT_INTERACTIONS_MINIMUM = 1;  // To use these two metrics separately, delete or comment out the CHAT_MINIMUM_SUM.
         const CHAT_WORDS_MINIMUM = 4;
 
         const MAX_SECTIONS = 12;
@@ -1757,8 +1759,9 @@ Copyright: 2020-2021, all rights reserved
 
                     let chatTextContents = '';
                     if (zoomChatResults[zoomChatIndex]) {
-                        if (zoomChatResults[zoomChatIndex].chat.length >= CHAT_INTERACTIONS_MINIMUM && zoomChatResults[
-                                zoomChatIndex].words >= CHAT_WORDS_MINIMUM) {
+                        if (CHAT_MINIMUM_SUM && (zoomChatResults[zoomChatIndex].chat.length + zoomChatResults[zoomChatIndex].words >= CHAT_MINIMUM_SUM)) {
+                            attendMetric = true;
+                        } else if (zoomChatResults[zoomChatIndex].chat.length >= CHAT_INTERACTIONS_MINIMUM && zoomChatResults[zoomChatIndex].words >= CHAT_WORDS_MINIMUM) {
                             attendMetric = true;
                         }
 
