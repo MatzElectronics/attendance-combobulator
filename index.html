@@ -1954,7 +1954,7 @@ Copyright: 2020-2021, all rights reserved
                             '$1 From$2 : $3\n');
                         contents = contents.replace(/\(Direct Message\)/gi, '');
 
-                        contents = contents.trim().replace(/ From (.*?) to (.*?) : /g, '\u275A$1\u275A$2\u275A');
+                        contents = contents.trim().replace(/ +From +(.*?) +to +(.*?) +: +/g, '\u275A$1\u275A$2\u275A');
                         zoomChatText = zoomChatText.concat(contents.split('\n'));
                     }
                 }
